@@ -14,7 +14,201 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      artworks: {
+        Row: {
+          created_at: string
+          credits_consumed: number
+          generated_image_url: string | null
+          id: string
+          original_image_url: string
+          prompt: string | null
+          style: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_consumed?: number
+          generated_image_url?: string | null
+          id?: string
+          original_image_url: string
+          prompt?: string | null
+          style: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_consumed?: number
+          generated_image_url?: string | null
+          id?: string
+          original_image_url?: string
+          prompt?: string | null
+          style?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_packages: {
+        Row: {
+          credits_amount: number
+          id: string
+          name: string
+          price: number
+          stripe_price_id: string | null
+        }
+        Insert: {
+          credits_amount: number
+          id?: string
+          name: string
+          price: number
+          stripe_price_id?: string | null
+        }
+        Update: {
+          credits_amount?: number
+          id?: string
+          name?: string
+          price?: number
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_package_id: string | null
+          id: string
+          related_artwork_id: string | null
+          related_order_id: string | null
+          stripe_checkout_session_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_package_id?: string | null
+          id?: string
+          related_artwork_id?: string | null
+          related_order_id?: string | null
+          stripe_checkout_session_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_package_id?: string | null
+          id?: string
+          related_artwork_id?: string | null
+          related_order_id?: string | null
+          stripe_checkout_session_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_credit_package_id_fkey"
+            columns: ["credit_package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_related_artwork_id_fkey"
+            columns: ["related_artwork_id"]
+            isOneToOne: false
+            referencedRelation: "artworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_related_order_id_fkey"
+            columns: ["related_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          artwork_id: string | null
+          created_at: string
+          id: string
+          printful_order_id: string | null
+          product_type: string
+          quantity: number
+          shipping_address: Json
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          artwork_id?: string | null
+          created_at?: string
+          id?: string
+          printful_order_id?: string | null
+          product_type: string
+          quantity?: number
+          shipping_address: Json
+          status?: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          artwork_id?: string | null
+          created_at?: string
+          id?: string
+          printful_order_id?: string | null
+          product_type?: string
+          quantity?: number
+          shipping_address?: Json
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_artwork_id_fkey"
+            columns: ["artwork_id"]
+            isOneToOne: false
+            referencedRelation: "artworks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          credits_balance: number
+          email: string
+          id: string
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_balance?: number
+          email: string
+          id: string
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_balance?: number
+          email?: string
+          id?: string
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

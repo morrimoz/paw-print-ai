@@ -1,25 +1,41 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hasRecovery, setHasRecovery] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) {
+      setHasRecovery(true);
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirm) {
       toast.error("Passwords do not match.");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
       toast.success("Password updated! You can now log in.");
+      navigate("/login");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update password.");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   return (

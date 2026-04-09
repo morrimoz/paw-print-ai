@@ -1,8 +1,11 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
-import { Upload, Sparkles, Image } from "lucide-react";
+import { Upload, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const artStyles = [
   { id: "watercolor", name: "Watercolor", preview: "🎨" },
@@ -19,7 +22,8 @@ const CreateArt = () => {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const credits = 5;
+  const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,20 +40,49 @@ const CreateArt = () => {
     setPreviewUrl(URL.createObjectURL(file));
   };
 
-  const handleGenerate = () => {
-    if (!selectedFile || !selectedStyle) {
-      toast.error("Please upload a photo and select a style.");
-      return;
-    }
-    if (credits < 1) {
+  const handleGenerate = async () => {
+    if (!selectedFile || !selectedStyle || !user) return;
+
+    if ((profile?.credits_balance ?? 0) < 1) {
       toast.error("Insufficient credits. Purchase more to continue.");
+      navigate("/my-credits");
       return;
     }
+
     setGenerating(true);
-    setTimeout(() => {
+    try {
+      // Upload original photo
+      const ext = selectedFile.name.split(".").pop();
+      const filePath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("user_uploads")
+        .upload(filePath, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: signedData } = await supabase.storage
+        .from("user_uploads")
+        .createSignedUrl(filePath, 60 * 60);
+
+      const originalUrl = signedData?.signedUrl;
+      if (!originalUrl) throw new Error("Failed to get signed URL");
+
+      // Call edge function
+      const { data, error } = await supabase.functions.invoke("generate-art", {
+        body: { original_image_url: originalUrl, style: selectedStyle },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Art generated successfully!");
+      await refreshProfile();
+      navigate("/artwork-preview", { state: { artwork: data.artwork } });
+    } catch (err: any) {
+      toast.error(err.message || "Generation failed. Please try again.");
+    } finally {
       setGenerating(false);
-      toast.success("Art generated! (Demo mode — connect backend for real AI generation)");
-    }, 2000);
+    }
   };
 
   return (
@@ -58,7 +91,7 @@ const CreateArt = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-heading text-3xl font-extrabold text-foreground">Create Art</h1>
           <span className="bg-accent text-accent-foreground text-sm font-medium px-3 py-1 rounded-full">
-            {credits} credits remaining
+            {profile?.credits_balance ?? 0} credits remaining
           </span>
         </div>
 

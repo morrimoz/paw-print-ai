@@ -1,21 +1,29 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { signIn, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      toast.info("Login functionality requires backend setup.");
+    try {
+      await signIn(email, password);
+      toast.success("Welcome back!");
+      navigate("/create-art");
+    } catch (err: any) {
+      toast.error(err.message || "Login failed.");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   return (
@@ -45,7 +53,7 @@ const Login = () => {
             <div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">or</span></div>
           </div>
 
-          <Button variant="outline" className="mt-4 w-full" onClick={() => toast.info("Google OAuth requires backend setup.")}>
+          <Button variant="outline" className="mt-4 w-full" onClick={() => signInWithGoogle()}>
             Continue with Google
           </Button>
 

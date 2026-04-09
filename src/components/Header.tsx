@@ -1,7 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut, User } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navLinks = [
   { label: "How it Works", to: "/how-it-works" },
@@ -12,6 +13,13 @@ const navLinks = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -21,7 +29,6 @@ export function Header() {
           <span className="font-heading text-xl font-extrabold text-foreground">PawPrint AI</span>
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
             <Link
@@ -37,46 +44,58 @@ export function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/login">Log In</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link to="/signup">Sign Up</Link>
-          </Button>
+          {user ? (
+            <>
+              <span className="text-sm text-muted-foreground">{profile?.credits_balance ?? 0} credits</span>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/create-art">Create Art</Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild>
+                <Link to="/my-profile"><User className="h-4 w-4" /></Link>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login">Log In</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
-        {/* Mobile toggle */}
         <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-background px-4 pb-4 pt-2 animate-fade-in">
           <nav className="flex flex-col gap-2">
             {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`py-2 text-sm font-medium ${
-                  location.pathname === link.to ? "text-primary" : "text-muted-foreground"
-                }`}
-                onClick={() => setMobileOpen(false)}
-              >
+              <Link key={link.to} to={link.to} className={`py-2 text-sm font-medium ${location.pathname === link.to ? "text-primary" : "text-muted-foreground"}`} onClick={() => setMobileOpen(false)}>
                 {link.label}
               </Link>
             ))}
-            <Link to="/about" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>About</Link>
-            <Link to="/contact" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>Contact</Link>
-            <div className="flex gap-2 pt-2">
-              <Button variant="ghost" size="sm" asChild className="flex-1">
-                <Link to="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
-              </Button>
-              <Button size="sm" asChild className="flex-1">
-                <Link to="/signup" onClick={() => setMobileOpen(false)}>Sign Up</Link>
-              </Button>
-            </div>
+            {user ? (
+              <>
+                <Link to="/create-art" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>Create Art</Link>
+                <Link to="/my-orders" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>My Orders</Link>
+                <Link to="/my-credits" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>My Credits</Link>
+                <Link to="/my-profile" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>My Profile</Link>
+                <button onClick={() => { handleSignOut(); setMobileOpen(false); }} className="py-2 text-sm text-destructive text-left">Sign Out</button>
+              </>
+            ) : (
+              <div className="flex gap-2 pt-2">
+                <Button variant="ghost" size="sm" asChild className="flex-1"><Link to="/login" onClick={() => setMobileOpen(false)}>Log In</Link></Button>
+                <Button size="sm" asChild className="flex-1"><Link to="/signup" onClick={() => setMobileOpen(false)}>Sign Up</Link></Button>
+              </div>
+            )}
           </nav>
         </div>
       )}

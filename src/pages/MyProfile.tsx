@@ -2,19 +2,38 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const MyProfile = () => {
-  const [name, setName] = useState("Pet Lover");
-  const [email] = useState("user@example.com");
+  const { user, profile, refreshProfile } = useAuth();
+  const [name, setName] = useState(profile?.name || "");
+  const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ name })
+        .eq("id", user!.id);
+      if (error) throw error;
+
+      if (newPassword) {
+        const { error: pwError } = await supabase.auth.updateUser({ password: newPassword });
+        if (pwError) throw pwError;
+      }
+
+      await refreshProfile();
       toast.success("Profile updated!");
+      setNewPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update profile.");
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   };
 
   return (
@@ -36,7 +55,7 @@ const MyProfile = () => {
             <label className="text-sm font-medium text-foreground">Email</label>
             <input
               type="email"
-              value={email}
+              value={user?.email || ""}
               disabled
               className="mt-1 w-full rounded-sm border border-input bg-muted px-3 py-2 text-sm text-muted-foreground cursor-not-allowed"
             />
@@ -45,6 +64,8 @@ const MyProfile = () => {
             <label className="text-sm font-medium text-foreground">New Password</label>
             <input
               type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Leave blank to keep current"
               className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />

@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const cache = new Map<string, { data: unknown; ts: number }>();
 
@@ -16,20 +14,9 @@ function setCache(key: string, data: unknown) {
 
 async function callPrintful(action: string, params: Record<string, string> = {}, body?: unknown) {
   const queryParams = new URLSearchParams({ action, ...params });
-  
-  const options: { method: string; body?: string } = body 
-    ? { method: "POST", body: JSON.stringify(body) }
-    : { method: "GET" };
-
-  const { data, error } = await supabase.functions.invoke("printful", {
-    body: body ? { ...body as object, _action: action, _params: params } : undefined,
-    method: body ? "POST" : "POST",
-  });
-
-  // Use the edge function via fetch for GET-like requests with query params
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  
+
   const response = await fetch(
     `https://${projectId}.supabase.co/functions/v1/printful?${queryParams}`,
     {
@@ -96,7 +83,7 @@ export interface PrintfulProductDetail {
 
 export async function fetchCategories(): Promise<PrintfulCategory[]> {
   const cached = getCached<{ result: { categories: PrintfulCategory[] } }>("categories");
-  if (cached) return cached.result.categories || cached.result as unknown as PrintfulCategory[];
+  if (cached) return cached.result?.categories || cached.result as unknown as PrintfulCategory[];
 
   const data = await callPrintful("categories");
   setCache("categories", data);
@@ -110,7 +97,7 @@ export async function fetchProducts(categoryId?: number): Promise<PrintfulProduc
 
   const params: Record<string, string> = {};
   if (categoryId) params.category_id = String(categoryId);
-  
+
   const data = await callPrintful("products", params);
   setCache(key, data);
   return data.result || [];

@@ -67,13 +67,13 @@ export interface PrintfulVariant {
   product_id: number;
   name: string;
   size: string;
-  color: string;
-  color_code: string;
+  color: string | null;
+  color_code: string | null;
   color_code2: string | null;
   image: string;
   price: string;
   in_stock: boolean;
-  availability_status: string;
+  availability_status: { region: string; status: string }[];
 }
 
 export interface PrintfulProductDetail {

@@ -39,6 +39,15 @@ const HowItWorks = () => {
             From photo to masterpiece in minutes — no artistic skills needed.
           </p>
 
+          <div className="mt-10">
+            <img
+              src={howItWorksHero}
+              alt="How PawPrint AI works — upload, transform, print"
+              className="rounded-xl shadow-card w-full"
+              loading="eager"
+            />
+          </div>
+
           <div className="mt-16 flex flex-col gap-12">
             {steps.map((step) => (
               <div key={step.title} className="flex gap-6 items-start">

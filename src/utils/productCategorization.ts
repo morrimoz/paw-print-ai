@@ -2,41 +2,41 @@ export interface UICategory {
   id: string;
   label: string;
   icon: string;
-  // Printful top-level parent category IDs to fetch products from
+  // Printful category IDs to fetch products from
   printfulCategoryIds: number[];
 }
 
-// Map our UI categories to Printful parent category IDs (from /categories API)
+// Map our UI categories to actual Printful category IDs (from /categories API)
 export const UI_CATEGORIES: UICategory[] = [
   {
     id: "wall-art",
     label: "Wall Art",
     icon: "🖼️",
-    printfulCategoryIds: [28], // Posters, canvas, framed prints (id 28 = "Wall art" parent)
+    printfulCategoryIds: [21], // "Wall art" subcategory under Home & Living
   },
   {
     id: "clothing",
     label: "Clothing",
     icon: "👕",
-    printfulCategoryIds: [1, 2], // Men's clothing, Women's clothing
+    printfulCategoryIds: [24, 28], // T-shirts (men), Hoodies (men)
   },
   {
     id: "drinkware",
     label: "Drinkware",
     icon: "☕",
-    printfulCategoryIds: [126], // Drinkware
+    printfulCategoryIds: [112], // "Drinkware & coasters" under Home & Living
   },
   {
     id: "accessories",
     label: "Accessories",
     icon: "🎒",
-    printfulCategoryIds: [4], // Accessories
+    printfulCategoryIds: [16, 15], // Bags, All hats
   },
   {
     id: "home-living",
     label: "Home & Living",
     icon: "🏠",
-    printfulCategoryIds: [5], // Home & Living
+    printfulCategoryIds: [5], // Home & Living parent
   },
 ];
 
@@ -48,13 +48,8 @@ export function categorizeProduct(productTitle: string, productType: string): st
   const type = productType.toLowerCase();
 
   if (
-    title.includes("poster") ||
-    title.includes("canvas") ||
-    title.includes("framed") ||
-    title.includes("print") ||
-    type.includes("poster") ||
-    type.includes("canvas") ||
-    type.includes("framed")
+    title.includes("poster") || title.includes("canvas") || title.includes("framed") ||
+    title.includes("print") || type.includes("poster") || type.includes("canvas")
   ) {
     return "wall-art";
   }
@@ -62,22 +57,14 @@ export function categorizeProduct(productTitle: string, productType: string): st
     return "drinkware";
   }
   if (
-    title.includes("shirt") ||
-    title.includes("hoodie") ||
-    title.includes("sweatshirt") ||
-    title.includes("tank") ||
-    title.includes("dress") ||
-    type.includes("shirt")
+    title.includes("shirt") || title.includes("hoodie") || title.includes("sweatshirt") ||
+    title.includes("tank") || title.includes("dress")
   ) {
     return "clothing";
   }
   if (
-    title.includes("pillow") ||
-    title.includes("blanket") ||
-    title.includes("towel") ||
-    title.includes("apron") ||
-    title.includes("coaster") ||
-    title.includes("rug")
+    title.includes("pillow") || title.includes("blanket") || title.includes("towel") ||
+    title.includes("apron") || title.includes("coaster") || title.includes("rug")
   ) {
     return "home-living";
   }

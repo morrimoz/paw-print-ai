@@ -2,6 +2,7 @@ import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Upload, Palette, Sparkles, ShoppingBag, ArrowRight } from "lucide-react";
+import howItWorksHero from "@/assets/how-it-works-hero.png";
 
 const steps = [
   {

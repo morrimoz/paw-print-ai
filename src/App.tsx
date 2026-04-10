@@ -21,6 +21,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import CreateArt from "./pages/CreateArt";
 import ArtworkPreview from "./pages/ArtworkPreview";
+import Merchandise from "./pages/Merchandise";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import MyOrders from "./pages/MyOrders";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/create-art" element={<ProtectedRoute><CreateArt /></ProtectedRoute>} />
             <Route path="/artwork-preview" element={<ProtectedRoute><ArtworkPreview /></ProtectedRoute>} />
+            <Route path="/merchandise" element={<ProtectedRoute><Merchandise /></ProtectedRoute>} />
             <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
             <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
             <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
@@ -61,8 +63,8 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   </ThemeProvider>
 );
 

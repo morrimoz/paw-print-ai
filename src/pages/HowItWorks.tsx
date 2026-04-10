@@ -31,7 +31,7 @@ const HowItWorks = () => {
   return (
     <PublicLayout>
       <section className="py-16 md:py-24">
-        <div className="container max-w-3xl">
+        <div className="container max-w-5xl">
           <h1 className="font-heading text-4xl md:text-5xl font-extrabold text-center text-foreground">
             How It Works
           </h1>

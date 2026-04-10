@@ -9,13 +9,13 @@ const footerLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-foreground">
+    <footer className="border-t border-border bg-muted">
       <div className="container py-12">
         <div className="flex flex-col md:flex-row items-start justify-between gap-8">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="PawPrint AI" className="h-7 w-auto brightness-200" />
-              <span className="font-heading text-lg font-extrabold text-background">PawPrint AI</span>
+              <img src="/logo.png" alt="PawPrint AI" className="h-7 w-auto" />
+              <span className="font-heading text-lg font-extrabold text-foreground">PawPrint AI</span>
             </div>
             <p className="text-sm text-muted-foreground max-w-xs">
               Instant Art, Lasting Memories. Transform your pet photos into unique AI art.

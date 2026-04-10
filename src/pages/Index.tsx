@@ -2,7 +2,7 @@ import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Upload, Palette, ShoppingBag, Sparkles, Star, ArrowRight } from "lucide-react";
-import heroImage from "@/assets/hero-pets.jpg";
+import heroImage from "@/assets/hero-pets.png";
 
 const steps = [
   { icon: Upload, title: "Upload Photo", description: "Snap or upload your pet's best photo." },

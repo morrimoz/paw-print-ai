@@ -31,9 +31,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     setLoading(true);
     try {
       const detail = await fetchProductDetail(product.id);
-      const availableVariants = detail.variants.filter(
-        (v) => v.in_stock || v.availability_status === "active"
-      );
+      const availableVariants = detail.variants.filter((v) => v.in_stock);
       setVariants(availableVariants.length > 0 ? availableVariants : detail.variants);
       
       // Auto-select first size and color

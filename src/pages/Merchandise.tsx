@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProductGrid } from "@/components/ProductGrid";
 import { ProductDetail } from "@/components/ProductDetail";
@@ -17,68 +17,45 @@ const Merchandise = () => {
   const artwork = location.state?.artwork;
   const artworkUrl = artwork?.generated_image_url;
 
-  const [products, setProducts] = useState<PrintfulProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Map: UI category id -> products
+  const [categoryProducts, setCategoryProducts] = useState<Record<string, PrintfulProduct[]>>({});
+  const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState("wall-art");
   const [selectedProduct, setSelectedProduct] = useState<PrintfulProduct | null>(null);
-  const [loadedCategories, setLoadedCategories] = useState<Set<string>>(new Set());
 
-  const loadCategoryProducts = useCallback(async (categoryId: string) => {
-    if (loadedCategories.has(categoryId)) return;
-    
+  useEffect(() => {
+    if (!categoryProducts[activeCategory]) {
+      loadCategoryProducts(activeCategory);
+    }
+  }, [activeCategory]);
+
+  async function loadCategoryProducts(categoryId: string) {
     setLoading(true);
     try {
       const uiCat = UI_CATEGORIES.find((c) => c.id === categoryId);
       if (!uiCat) return;
-      
-      // Fetch products for each Printful category and merge
+
       const allProducts: PrintfulProduct[] = [];
       for (const pfCatId of uiCat.printfulCategoryIds) {
         const prods = await fetchProducts(pfCatId);
         allProducts.push(...prods);
       }
-      
+
       // Deduplicate and filter discontinued
       const uniqueProducts = allProducts
         .filter((p) => !p.is_discontinued)
         .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
-      
-      setProducts((prev) => {
-        const existingIds = new Set(prev.map((p) => p.id));
-        return [...prev, ...uniqueProducts.filter((p) => !existingIds.has(p.id))];
-      });
-      
-      setLoadedCategories((prev) => new Set(prev).add(categoryId));
+
+      setCategoryProducts((prev) => ({ ...prev, [categoryId]: uniqueProducts }));
     } catch (err) {
       console.error("Failed to load products:", err);
       toast.error("Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [loadedCategories]);
+  }
 
-  useEffect(() => {
-    loadCategoryProducts(activeCategory);
-  }, [activeCategory, loadCategoryProducts]);
-
-  // Products for the active category
-  const activeCategoryConfig = UI_CATEGORIES.find((c) => c.id === activeCategory);
-  const activePrintfulIds = new Set(activeCategoryConfig?.printfulCategoryIds || []);
-  
-  const filteredProducts = products.filter((p) => {
-    // Check main_category_id or parent category match
-    const mainCatId = (p as unknown as { main_category_id?: number }).main_category_id;
-    if (mainCatId && activePrintfulIds.has(mainCatId)) return true;
-    // Also check via all parent categories in the chain
-    return activeCategoryConfig?.printfulCategoryIds.some((catId) => {
-      return products.some((prod) => prod.id === p.id);
-    }) && loadedCategories.has(activeCategory);
-  });
-
-  // Since we load by category, just show all loaded products for the active category
-  const displayProducts = loadedCategories.has(activeCategory)
-    ? products.filter(() => true) // we need better filtering
-    : [];
+  const displayProducts = categoryProducts[activeCategory] || [];
 
   function handleAddToOrder(variant: PrintfulVariant, price: number) {
     toast.success(`${variant.name} added! Redirecting to checkout...`);
@@ -140,7 +117,6 @@ const Merchandise = () => {
               </p>
             </div>
 
-            {/* Artwork Preview Banner */}
             <div className="bg-card rounded-xl shadow-card p-4 mb-8 flex items-center gap-4">
               <img src={artworkUrl} alt="Your artwork" className="w-16 h-16 rounded-lg object-cover" />
               <div>
@@ -149,7 +125,6 @@ const Merchandise = () => {
               </div>
             </div>
 
-            {/* Category Navigation + Product Grid */}
             <div className="flex flex-col lg:flex-row gap-8">
               <aside className="lg:w-56 flex-shrink-0">
                 <h3 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -179,7 +154,7 @@ const Merchandise = () => {
               <div className="flex-1">
                 <ProductGrid
                   products={displayProducts}
-                  loading={loading && !loadedCategories.has(activeCategory)}
+                  loading={loading}
                   artworkUrl={artworkUrl}
                   onPreview={setSelectedProduct}
                 />

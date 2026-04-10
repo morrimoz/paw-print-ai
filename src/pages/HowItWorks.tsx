@@ -2,6 +2,7 @@ import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Upload, Palette, Sparkles, ShoppingBag, ArrowRight } from "lucide-react";
+import howItWorksHero from "@/assets/how-it-works-hero.png";
 
 const steps = [
   {
@@ -37,6 +38,15 @@ const HowItWorks = () => {
           <p className="mt-4 text-center text-lg text-muted-foreground">
             From photo to masterpiece in minutes — no artistic skills needed.
           </p>
+
+          <div className="mt-10">
+            <img
+              src={howItWorksHero}
+              alt="How PawPrint AI works — upload, transform, print"
+              className="rounded-xl shadow-card w-full"
+              loading="eager"
+            />
+          </div>
 
           <div className="mt-16 flex flex-col gap-12">
             {steps.map((step) => (

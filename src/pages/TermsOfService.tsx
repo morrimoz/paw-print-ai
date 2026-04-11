@@ -11,10 +11,10 @@ const TermsOfService = () => (
         <p className="text-muted-foreground">By using PawPrint AI, you agree to upload only photos you own or have the right to use. You must not use the service for any illegal or harmful purposes.</p>
 
         <h2 className="font-heading text-xl font-semibold text-foreground mt-8">Intellectual Property</h2>
-        <p className="text-muted-foreground">You retain ownership of photos you upload. AI-generated artwork is licensed to you for personal and commercial use once generated with purchased credits.</p>
+        <p className="text-muted-foreground">You retain ownership of photos you upload. AI-generated artwork is licensed to you for personal and commercial use once generated with purchased treats.</p>
 
-        <h2 className="font-heading text-xl font-semibold text-foreground mt-8">Credits & Payments</h2>
-        <p className="text-muted-foreground">Credits are non-refundable and do not expire. Merchandise orders are fulfilled by our print partner and are subject to their production timelines.</p>
+        <h2 className="font-heading text-xl font-semibold text-foreground mt-8">Treats & Payments</h2>
+        <p className="text-muted-foreground">Treats are non-refundable and do not expire. Merchandise orders are fulfilled by our print partner and are subject to their production timelines.</p>
 
         <h2 className="font-heading text-xl font-semibold text-foreground mt-8">Disclaimers</h2>
         <p className="text-muted-foreground">AI-generated art results may vary. We do not guarantee specific outcomes. The service is provided "as is" without warranties of any kind.</p>

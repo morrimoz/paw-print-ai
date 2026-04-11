@@ -17,7 +17,6 @@ const Merchandise = () => {
   const artwork = location.state?.artwork;
   const artworkUrl = artwork?.generated_image_url;
 
-  // Map: UI category id -> products
   const [categoryProducts, setCategoryProducts] = useState<Record<string, PrintfulProduct[]>>({});
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState("wall-art");
@@ -41,7 +40,6 @@ const Merchandise = () => {
         allProducts.push(...prods);
       }
 
-      // Deduplicate and filter discontinued
       const uniqueProducts = allProducts
         .filter((p) => !p.is_discontinued)
         .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
@@ -131,23 +129,26 @@ const Merchandise = () => {
                   Categories
                 </h3>
                 <nav className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0">
-                  {UI_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        setActiveCategory(cat.id);
-                        setSelectedProduct(null);
-                      }}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                        activeCategory === cat.id
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                      }`}
-                    >
-                      <span>{cat.icon}</span>
-                      {cat.label}
-                    </button>
-                  ))}
+                  {UI_CATEGORIES.map((cat) => {
+                    const Icon = cat.icon;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setActiveCategory(cat.id);
+                          setSelectedProduct(null);
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                          activeCategory === cat.id
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {cat.label}
+                      </button>
+                    );
+                  })}
                 </nav>
               </aside>
 

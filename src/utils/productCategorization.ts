@@ -1,7 +1,10 @@
+import { Frame, Shirt, Coffee, Backpack, Home } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 export interface UICategory {
   id: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   // Printful category IDs to fetch products from
   printfulCategoryIds: number[];
 }
@@ -11,31 +14,31 @@ export const UI_CATEGORIES: UICategory[] = [
   {
     id: "wall-art",
     label: "Wall Art",
-    icon: "🖼️",
+    icon: Frame,
     printfulCategoryIds: [21], // "Wall art" subcategory under Home & Living
   },
   {
     id: "clothing",
     label: "Clothing",
-    icon: "👕",
+    icon: Shirt,
     printfulCategoryIds: [24, 28], // T-shirts (men), Hoodies (men)
   },
   {
     id: "drinkware",
     label: "Drinkware",
-    icon: "☕",
+    icon: Coffee,
     printfulCategoryIds: [112], // "Drinkware & coasters" under Home & Living
   },
   {
     id: "accessories",
     label: "Accessories",
-    icon: "🎒",
+    icon: Backpack,
     printfulCategoryIds: [16, 15], // Bags, All hats
   },
   {
     id: "home-living",
     label: "Home & Living",
-    icon: "🏠",
+    icon: Home,
     printfulCategoryIds: [5], // Home & Living parent
   },
 ];

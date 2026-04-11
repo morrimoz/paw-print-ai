@@ -39,8 +39,8 @@ const Index = () => {
                 <Link to="/gallery">Explore Gallery</Link>
               </Button>
             </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              ✨ 5 free generations when you sign up — no credit card required
+            <p className="mt-4 text-sm text-muted-foreground flex items-center gap-1 justify-center lg:justify-start">
+              <Sparkles className="h-4 w-4 text-primary" /> 5 free generations when you sign up — no credit card required
             </p>
           </div>
           <div className="flex-1 max-w-lg">

@@ -4,16 +4,16 @@ import { Link } from "react-router-dom";
 import { Check, ArrowRight } from "lucide-react";
 
 const packages = [
-  { name: "Starter Pack", credits: 10, price: 5, perCredit: "0.50", popular: false },
-  { name: "Enthusiast Pack", credits: 50, price: 20, perCredit: "0.40", popular: true },
-  { name: "Pro Pack", credits: 200, price: 60, perCredit: "0.30", popular: false },
+  { name: "Starter Pack", treats: 10, price: 5, perTreat: "0.50", popular: false },
+  { name: "Enthusiast Pack", treats: 50, price: 20, perTreat: "0.40", popular: true },
+  { name: "Pro Pack", treats: 200, price: 60, perTreat: "0.30", popular: false },
 ];
 
 const features = [
   "High-resolution AI art downloads",
   "All art styles included",
   "Merchandise ordering access",
-  "Credits never expire",
+  "Treats never expire",
   "Priority generation queue",
 ];
 
@@ -23,10 +23,10 @@ const Pricing = () => {
       <section className="py-16 md:py-24">
         <div className="container max-w-5xl">
           <h1 className="font-heading text-4xl md:text-5xl font-extrabold text-center text-foreground">
-            Simple, Credit-Based Pricing
+            Simple, Treat-Based Pricing
           </h1>
           <p className="mt-4 text-center text-lg text-muted-foreground max-w-lg mx-auto">
-            Buy credits, create art. No subscriptions, no hidden fees. Each generation costs 1 credit.
+            Buy treats, create art. No subscriptions, no hidden fees. Each generation costs 1 treat.
           </p>
 
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -47,7 +47,7 @@ const Pricing = () => {
                   <span className="text-4xl font-extrabold text-foreground">${pkg.price}</span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {pkg.credits} credits · ${pkg.perCredit} each
+                  {pkg.treats} treats · ${pkg.perTreat} each
                 </p>
                 <ul className="mt-6 flex flex-col gap-2 flex-1">
                   {features.slice(0, pkg.popular ? 5 : 3).map((f) => (
@@ -69,7 +69,7 @@ const Pricing = () => {
           </div>
 
           <p className="mt-10 text-center text-sm text-muted-foreground">
-            🎉 New users get <strong>5 free credits</strong> on signup. No credit card required.
+            🎉 New users get <strong>5 free treats</strong> on signup. No credit card required.
           </p>
         </div>
       </section>

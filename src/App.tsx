@@ -31,7 +31,7 @@ import MyProfile from "./pages/MyProfile";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>

@@ -20,6 +20,7 @@ const CreateArt = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { user, profile, refreshProfile } = useAuth();
@@ -91,7 +92,7 @@ const CreateArt = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-heading text-3xl font-extrabold text-foreground">Create Art</h1>
           <span className="bg-accent text-accent-foreground text-sm font-medium px-3 py-1 rounded-full">
-            {profile?.credits_balance ?? 0} credits remaining
+            {profile?.credits_balance ?? 0} treats remaining
           </span>
         </div>
 
@@ -115,9 +116,20 @@ const CreateArt = () => {
           </div>
         </div>
 
+        {/* Text Prompt */}
+        <div className="mb-8">
+          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">2. Describe Your Vision (Optional)</h2>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="e.g. My dog as a royal king wearing a crown, in a majestic castle setting..."
+            className="w-full rounded-xl border-2 border-border bg-card p-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors resize-none min-h-[100px]"
+          />
+        </div>
+
         {/* Style Selection */}
         <div className="mb-8">
-          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">2. Choose Your Art Style</h2>
+          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">3. Choose Your Art Style</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {artStyles.map((style) => (
               <button
@@ -139,8 +151,7 @@ const CreateArt = () => {
         {/* Generate */}
         <div className="text-center">
           <Button
-            variant="hero"
-            size="xl"
+            className="bg-foreground text-background hover:bg-foreground/90 rounded-md shadow-md hover:shadow-lg text-base font-semibold h-12 px-10"
             onClick={handleGenerate}
             disabled={!selectedFile || !selectedStyle || generating}
           >
@@ -150,10 +161,11 @@ const CreateArt = () => {
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4" /> Generate My Art (1 credit)
+                <Sparkles className="h-4 w-4" /> Generate
               </>
             )}
           </Button>
+          <p className="mt-2 text-xs text-muted-foreground">Costs 1 treat</p>
         </div>
       </div>
     </DashboardLayout>

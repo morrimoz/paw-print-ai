@@ -98,7 +98,7 @@ const CreateArt = () => {
 
     if ((profile?.credits_balance ?? 0) < 1) {
       toast.error("Insufficient treats. Purchase more to continue.");
-      navigate("/my-credits");
+      navigate("/my-treats");
       return;
     }
 

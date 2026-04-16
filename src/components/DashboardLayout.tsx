@@ -6,7 +6,7 @@ import { useState } from "react";
 const sidebarLinks = [
   { label: "Create Art", to: "/create-art", icon: Palette },
   { label: "My Orders", to: "/my-orders", icon: ShoppingBag },
-  { label: "My Treats", to: "/my-credits", icon: CreditCard },
+  { label: "My Treats", to: "/my-treats", icon: CreditCard },
   { label: "My Profile", to: "/my-profile", icon: User },
 ];
 

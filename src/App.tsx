@@ -25,7 +25,7 @@ import Merchandise from "./pages/Merchandise";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import MyOrders from "./pages/MyOrders";
-import MyCredits from "./pages/MyCredits";
+import MyTreats from "./pages/MyTreats";
 import MyProfile from "./pages/MyProfile";
 
 const queryClient = new QueryClient();
@@ -57,7 +57,8 @@ const App = () => (
             <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
             <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
             <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
-            <Route path="/my-credits" element={<ProtectedRoute><MyCredits /></ProtectedRoute>} />
+            <Route path="/my-treats" element={<ProtectedRoute><MyTreats /></ProtectedRoute>} />
+            <Route path="/my-credits" element={<ProtectedRoute><MyTreats /></ProtectedRoute>} />
             <Route path="/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -126,6 +126,21 @@ export async function createMockup(
   return data.result;
 }
 
+/** Returns true if Printful mockup-generator supports this product (printfiles exist). */
+export async function checkMockupSupport(productId: number): Promise<boolean> {
+  const key = `mockup-support-${productId}`;
+  const cached = getCached<boolean>(key);
+  if (cached !== null) return cached;
+  try {
+    const data = await callPrintful("printfiles", { product_id: String(productId) });
+    const supported = !!(data?.result?.printfiles?.length && data?.result?.variant_printfiles?.length);
+    setCache(key, supported);
+    return supported;
+  } catch {
+    return false;
+  }
+}
+
 export async function createOrder(
   items: { variant_id: number; quantity: number; files: { url: string; type: string }[] }[],
   shippingAddress: {

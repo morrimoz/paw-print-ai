@@ -3,11 +3,11 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProductGrid } from "@/components/ProductGrid";
 import { ProductDetail } from "@/components/ProductDetail";
-import { fetchProducts } from "@/services/printful";
+import { fetchProducts, checkMockupSupport } from "@/services/printful";
 import { UI_CATEGORIES } from "@/utils/productCategorization";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { toast } from "sonner";
-import { Image, ArrowLeft } from "lucide-react";
+import { Image, ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -21,12 +21,38 @@ const Merchandise = () => {
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState("wall-art");
   const [selectedProduct, setSelectedProduct] = useState<PrintfulProduct | null>(null);
+  const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>([]);
 
   useEffect(() => {
     if (!categoryProducts[activeCategory]) {
       loadCategoryProducts(activeCategory);
     }
   }, [activeCategory]);
+
+  // Find mockup-supported products across a few categories for the featured strip
+  useEffect(() => {
+    let cancelled = false;
+    async function loadFeatured() {
+      try {
+        const candidates: PrintfulProduct[] = [];
+        for (const catId of [21, 24, 112, 19]) {
+          try {
+            const prods = await fetchProducts(catId);
+            candidates.push(...prods.filter((p) => !p.is_discontinued).slice(0, 4));
+          } catch {/* skip */}
+        }
+        const supported: PrintfulProduct[] = [];
+        for (const p of candidates) {
+          if (supported.length >= 6) break;
+          const ok = await checkMockupSupport(p.id);
+          if (ok) supported.push(p);
+        }
+        if (!cancelled) setMockupSupported(supported);
+      } catch {/* ignore */}
+    }
+    loadFeatured();
+    return () => { cancelled = true; };
+  }, []);
 
   async function loadCategoryProducts(categoryId: string) {
     setLoading(true);
@@ -115,13 +141,49 @@ const Merchandise = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-xl shadow-card p-4 mb-8 flex items-center gap-4">
+            <div className="glass-card rounded-xl p-4 mb-6 flex items-center gap-4">
               <img src={artworkUrl} alt="Your artwork" className="w-16 h-16 rounded-lg object-cover" />
               <div>
                 <p className="text-sm font-semibold text-foreground">Your Artwork</p>
                 <p className="text-xs text-muted-foreground capitalize">{artwork.style} style</p>
               </div>
             </div>
+
+            {/* Featured: products with live mockup previews from Printful */}
+            {mockupSupported.length > 0 && (
+              <div className="mb-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
+                    Live Mockup Available
+                  </h2>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  These products generate a real photo-mockup of your art via Printful — pick one to preview.
+                </p>
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+                  {mockupSupported.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedProduct(p)}
+                      className="flex-shrink-0 w-36 group text-left"
+                    >
+                      <div className="aspect-square rounded-xl overflow-hidden bg-card border border-border card-lift ring-gradient-hover">
+                        <img
+                          src={p.image}
+                          alt={p.title}
+                          className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                      </div>
+                      <p className="mt-2 text-xs font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                        {p.title}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col lg:flex-row gap-8">
               <aside className="lg:w-56 flex-shrink-0">

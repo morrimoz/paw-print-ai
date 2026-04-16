@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Upload, Sparkles, ImagePlus } from "lucide-react";
+import { Upload, Sparkles, ImagePlus, Contrast, Film, Palette, Brush, Smile, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,12 +14,12 @@ import styleHumorous from "@/assets/style-humorous.webp";
 import styleCartoon from "@/assets/style-cartoon.webp";
 
 const artStyles = [
-  { id: "dramatic-bw", name: "Dramatic B&W", image: styleBlackWhite },
-  { id: "pixar", name: "Pixar Movie", image: stylePixar },
-  { id: "renaissance-oil", name: "Renaissance Oil", image: styleRenaissance },
-  { id: "watercolor", name: "Watercolor Art", image: styleWatercolor },
-  { id: "humorous", name: "Humorous Scenes", image: styleHumorous },
-  { id: "cartoon", name: "Cartoon", image: styleCartoon },
+  { id: "dramatic-bw", name: "Dramatic B&W", image: styleBlackWhite, Icon: Contrast },
+  { id: "pixar", name: "Pixar Movie", image: stylePixar, Icon: Film },
+  { id: "renaissance-oil", name: "Renaissance Oil", image: styleRenaissance, Icon: Palette },
+  { id: "watercolor", name: "Watercolor Art", image: styleWatercolor, Icon: Brush },
+  { id: "humorous", name: "Humorous Scenes", image: styleHumorous, Icon: Smile },
+  { id: "cartoon", name: "Cartoon", image: styleCartoon, Icon: Wand2 },
 ];
 
 const CreateArt = () => {
@@ -98,7 +98,7 @@ const CreateArt = () => {
 
     if ((profile?.credits_balance ?? 0) < 1) {
       toast.error("Insufficient treats. Purchase more to continue.");
-      navigate("/my-credits");
+      navigate("/my-treats");
       return;
     }
 
@@ -198,39 +198,48 @@ const CreateArt = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {artStyles.map((style) => {
               const isSelected = selectedStyle === style.id;
+              const Icon = style.Icon;
               return (
                 <button
                   key={style.id}
                   onClick={() => setSelectedStyle(isSelected ? null : style.id)}
-                  className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                  className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 card-lift ${
                     isSelected
                       ? "border-primary shadow-lg ring-2 ring-primary/30"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  {/* Background image — visible when selected OR on hover */}
+                  {/* Default state — grainy gradient mesh + icon */}
+                  <div
+                    className={`absolute inset-0 bg-mesh-card transition-opacity duration-500 ${
+                      isSelected ? "opacity-0" : "opacity-100 group-hover:opacity-0"
+                    }`}
+                  >
+                    <div className="absolute inset-0 grain-overlay" />
+                    <div className="relative z-10 h-full flex items-center justify-center">
+                      <Icon className="h-10 w-10 text-primary/80" strokeWidth={1.5} />
+                    </div>
+                  </div>
+
+                  {/* Hover/selected state — reveal style image */}
                   <img
                     src={style.image}
                     alt={style.name}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-                      isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
+                      isSelected ? "opacity-100 scale-100" : "opacity-0 scale-105 group-hover:opacity-100 group-hover:scale-100"
                     }`}
                     loading="lazy"
                   />
-                  {/* Default solid backdrop */}
-                  <div
-                    className={`absolute inset-0 bg-card transition-opacity duration-500 ${
-                      isSelected ? "opacity-0" : "opacity-100 group-hover:opacity-0"
-                    }`}
-                  />
-                  {/* Gradient bottom for text readability */}
+
+                  {/* Bottom gradient for label readability when image visible */}
                   <div
                     className={`absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-500 ${
                       isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     }`}
                   />
+
                   {/* Label */}
-                  <div className="absolute inset-0 flex items-end justify-center p-3">
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-center p-3">
                     <span
                       className={`text-sm font-semibold transition-colors duration-300 ${
                         isSelected

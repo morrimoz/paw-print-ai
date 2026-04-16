@@ -7,6 +7,12 @@ const corsHeaders = {
 
 const PRINTFUL_BASE = "https://api.printful.com";
 
+/**
+ * Printful integration.
+ * Mockups use the v1 Mockup Generator API (POST /mockup-generator/create-task/{product_id})
+ * because it's stable, well-documented, and works for the broadest set of catalog products.
+ * Docs: https://developers.printful.com/docs/#tag/Mockup-Generator-API
+ */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,7 +35,7 @@ serve(async (req) => {
     let result: unknown;
 
     switch (action) {
-      // ---------- CATALOG (v1 — stable, paginated, rich data) ----------
+      // ---------- CATALOG ----------
       case "categories": {
         const res = await fetch(`${PRINTFUL_BASE}/categories`, { headers });
         if (!res.ok) throw new Error(`Printful categories failed [${res.status}]: ${await res.text()}`);
@@ -58,33 +64,19 @@ serve(async (req) => {
         break;
       }
 
-      // ---------- MOCKUPS (v2 — async task with polling) ----------
-      case "mockup-styles": {
+      // ---------- MOCKUPS (v1 — stable + well-supported) ----------
+      // Returns the print files (placements: front, back, default) supported by the product.
+      // Used to know which products mockup-generator can render.
+      case "printfiles": {
         const productId = url.searchParams.get("product_id");
         if (!productId) throw new Error("product_id is required");
         const res = await fetch(
-          `${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-styles`,
+          `${PRINTFUL_BASE}/mockup-generator/printfiles/${productId}`,
           { headers }
         );
         if (!res.ok) {
-          console.error(`Mockup styles failed [${res.status}]: ${await res.text()}`);
-          result = { data: [] };
-          break;
-        }
-        result = await res.json();
-        break;
-      }
-
-      case "mockup-templates": {
-        const productId = url.searchParams.get("product_id");
-        if (!productId) throw new Error("product_id is required");
-        const res = await fetch(
-          `${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-templates`,
-          { headers }
-        );
-        if (!res.ok) {
-          console.error(`Mockup templates failed [${res.status}]: ${await res.text()}`);
-          result = { data: [] };
+          console.error(`Printfiles failed [${res.status}]: ${await res.text()}`);
+          result = { code: res.status, result: null };
           break;
         }
         result = await res.json();
@@ -97,127 +89,120 @@ serve(async (req) => {
           product_id: number | string;
           variant_ids?: number[];
           image_url: string;
-          mockup_style_ids?: number[];
         };
-        let { mockup_style_ids } = body as { mockup_style_ids?: number[] };
 
         if (!product_id || !image_url) {
           throw new Error("product_id and image_url are required");
         }
 
-        // 1) Resolve mockup styles if not provided — use the first available style.
-        if (!mockup_style_ids?.length) {
-          try {
-            const stylesRes = await fetch(
-              `${PRINTFUL_BASE}/v2/catalog-products/${product_id}/mockup-styles`,
-              { headers }
-            );
-            if (stylesRes.ok) {
-              const stylesData = await stylesRes.json();
-              const styles = stylesData?.data || [];
-              if (styles.length > 0) mockup_style_ids = [styles[0].id];
-            }
-          } catch (e) {
-            console.error("mockup-styles lookup failed:", e);
-          }
-        }
-
-        // 2) Resolve placements via mockup-templates so we know the real placement key
-        //    (front, back, etc.) and print-area dimensions.
-        let placement = "front";
-        let position: Record<string, number> | undefined;
+        // 1) Fetch printfiles to discover supported variant_ids and the canonical placement key.
+        let placement = "default";
+        let supportedVariantIds: number[] = variant_ids ?? [];
         try {
-          const templatesRes = await fetch(
-            `${PRINTFUL_BASE}/v2/catalog-products/${product_id}/mockup-templates`,
+          const pfRes = await fetch(
+            `${PRINTFUL_BASE}/mockup-generator/printfiles/${product_id}`,
             { headers }
           );
-          if (templatesRes.ok) {
-            const templatesData = await templatesRes.json();
-            const templates = templatesData?.data || [];
-            if (templates.length > 0) {
-              const t = templates[0];
-              if (t.placement) placement = t.placement;
-              if (t.print_area) {
-                const w = t.print_area.width || 1800;
-                const h = t.print_area.height || 2400;
-                position = {
-                  area_width: w,
-                  area_height: h,
-                  width: w,
-                  height: h,
-                  top: 0,
-                  left: 0,
-                };
-              }
+          if (pfRes.ok) {
+            const pfData = await pfRes.json();
+            const printfiles = pfData?.result?.printfiles ?? [];
+            const variantPrintfiles = pfData?.result?.variant_printfiles ?? [];
+
+            // Pick first available placement key (front, default, etc.)
+            if (printfiles.length > 0) {
+              const placementKeys = Object.keys(printfiles[0].placements ?? { default: "" });
+              if (placementKeys.length > 0) placement = placementKeys[0];
+            }
+            // If caller didn't pass variants, use the first few that printfiles supports
+            if (!supportedVariantIds.length && variantPrintfiles.length > 0) {
+              supportedVariantIds = variantPrintfiles
+                .slice(0, 3)
+                .map((v: { variant_id: number }) => v.variant_id);
             }
           }
         } catch (e) {
-          console.error("mockup-templates lookup failed:", e);
+          console.error("printfiles lookup failed:", e);
         }
 
-        // 3) Create the mockup task (v2 async API).
-        const mockupBody: Record<string, unknown> = {
-          catalog_product_id: Number(product_id),
-          ...(variant_ids?.length ? { catalog_variant_ids: variant_ids } : {}),
-          ...(mockup_style_ids?.length ? { mockup_style_ids } : {}),
-          placements: [
+        if (!supportedVariantIds.length) {
+          // No variants available — the mockup generator cannot run for this product.
+          result = { code: 200, result: { mockups: [], fallback: true, reason: "no_variants" } };
+          break;
+        }
+
+        // 2) Create v1 mockup task.
+        const mockupBody = {
+          variant_ids: supportedVariantIds,
+          format: "jpg",
+          files: [
             {
               placement,
               image_url,
-              ...(position ? { position } : {}),
+              position: {
+                area_width: 1800,
+                area_height: 2400,
+                width: 1800,
+                height: 1800,
+                top: 300,
+                left: 0,
+              },
             },
           ],
         };
 
         try {
-          const taskRes = await fetch(`${PRINTFUL_BASE}/v2/mockup-tasks`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(mockupBody),
-          });
-
-          if (taskRes.ok) {
-            const taskData = await taskRes.json();
-            const taskId = taskData?.data?.id;
-
-            if (taskId) {
-              // Poll up to ~30s
-              for (let i = 0; i < 15; i++) {
-                await new Promise((r) => setTimeout(r, 2000));
-                const statusRes = await fetch(
-                  `${PRINTFUL_BASE}/v2/mockup-tasks?id=${taskId}`,
-                  { headers }
-                );
-                if (!statusRes.ok) continue;
-                const statusData = await statusRes.json();
-                const task = statusData?.data;
-                if (task?.status === "completed") {
-                  const mockups = (task.catalog_variant_mockups || []).flatMap((v: any) =>
-                    (v.mockups || []).map((m: any) => ({
-                      placement: m.placement,
-                      variant_ids: [v.catalog_variant_id],
-                      mockup_url: m.mockup_url,
-                    }))
-                  );
-                  result = { code: 200, result: { mockups } };
-                  break;
-                }
-                if (task?.status === "failed") {
-                  console.error("Mockup task failed:", task.failure_reasons);
-                  break;
-                }
-              }
+          const taskRes = await fetch(
+            `${PRINTFUL_BASE}/mockup-generator/create-task/${product_id}`,
+            {
+              method: "POST",
+              headers,
+              body: JSON.stringify(mockupBody),
             }
-          } else {
-            console.error("v2 mockup-tasks create failed:", await taskRes.text());
-          }
-        } catch (e) {
-          console.error("v2 mockup-task error:", e);
-        }
+          );
 
-        if (!result) {
-          // Graceful: tell client the mockup is unavailable; UI will show product image only.
-          result = { code: 200, result: { mockups: [], fallback: true } };
+          if (!taskRes.ok) {
+            console.error("v1 mockup create-task failed:", await taskRes.text());
+            result = { code: 200, result: { mockups: [], fallback: true, reason: "create_failed" } };
+            break;
+          }
+
+          const taskData = await taskRes.json();
+          const taskKey = taskData?.result?.task_key;
+
+          if (!taskKey) {
+            result = { code: 200, result: { mockups: [], fallback: true, reason: "no_task_key" } };
+            break;
+          }
+
+          // 3) Poll task up to ~30s.
+          let mockups: { placement: string; variant_ids: number[]; mockup_url: string }[] = [];
+          for (let i = 0; i < 15; i++) {
+            await new Promise((r) => setTimeout(r, 2000));
+            const statusRes = await fetch(
+              `${PRINTFUL_BASE}/mockup-generator/task?task_key=${encodeURIComponent(taskKey)}`,
+              { headers }
+            );
+            if (!statusRes.ok) continue;
+            const statusData = await statusRes.json();
+            const task = statusData?.result;
+            if (task?.status === "completed") {
+              mockups = (task.mockups ?? []).map((m: { placement: string; variant_ids: number[]; mockup_url: string }) => ({
+                placement: m.placement,
+                variant_ids: m.variant_ids,
+                mockup_url: m.mockup_url,
+              }));
+              break;
+            }
+            if (task?.status === "failed") {
+              console.error("v1 mockup task failed");
+              break;
+            }
+          }
+
+          result = { code: 200, result: { mockups, fallback: mockups.length === 0 } };
+        } catch (e) {
+          console.error("v1 mockup-generator error:", e);
+          result = { code: 200, result: { mockups: [], fallback: true, reason: "exception" } };
         }
         break;
       }

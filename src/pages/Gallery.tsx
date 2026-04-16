@@ -135,6 +135,55 @@ const Gallery = () => {
         </div>
       </section>
 
+      {/* Live Mockup carousel - only products that support real Printful mockups */}
+      <section className="pt-12 md:pt-16">
+        <div className="container">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
+              See your art on these
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-5">
+            These products generate a real photo-mockup of your AI pet art - perfect for previewing.
+          </p>
+          {mockupLoading && mockupSupported.length === 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-44">
+                  <div className="aspect-square rounded-xl bg-muted animate-pulse" />
+                  <div className="h-3 bg-muted rounded w-3/4 mt-2 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : mockupSupported.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No mockup-ready products right now.</p>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory">
+              {mockupSupported.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/product/${p.id}`}
+                  className="flex-shrink-0 w-44 snap-start group"
+                >
+                  <div className="aspect-square rounded-xl overflow-hidden glass-card card-lift ring-gradient-hover">
+                    <img
+                      src={p.image}
+                      alt={p.title}
+                      className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  </div>
+                  <p className="mt-2 text-xs font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                    {p.title}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section ref={gridRef} className="py-12 md:py-16">
         <div className="container">
           {loading && (

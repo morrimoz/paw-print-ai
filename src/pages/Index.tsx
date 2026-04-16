@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/hero-explain.jpg";
 
 gsap.registerPlugin(ScrollTrigger);

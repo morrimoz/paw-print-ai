@@ -1,7 +1,7 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { useEffect, useState } from "react";
-import { fetchCategories, fetchProducts } from "@/services/printful";
-import type { PrintfulCategory, PrintfulProduct } from "@/services/printful";
+import { fetchProducts } from "@/services/printful";
+import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
 import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";

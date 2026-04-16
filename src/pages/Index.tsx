@@ -18,12 +18,12 @@ const steps = [
 ];
 
 const testimonials = [
-  { text: "PawPrint AI turned my dog's photo into a stunning piece of art I'll treasure forever!", author: "Sarah M." },
+  { text: "PawPrint AI turned my dog's photo into a stunning piece of art I'll treasure forever!", author: "Sarah M.", initials: "SM", tone: "from-rose-400 to-orange-400" },
   {
     text: "The process was so easy, and the final portrait exceeded all my expectations. Highly recommend!",
-    author: "James K.",
+    author: "James K.", initials: "JK", tone: "from-sky-400 to-indigo-400"
   },
-  { text: "I love my cat's AI portrait! It captures her perfectly and looks amazing on my wall.", author: "Mia R." },
+  { text: "I love my cat's AI portrait! It captures her perfectly and looks amazing on my wall.", author: "Mia R.", initials: "MR", tone: "from-amber-400 to-pink-400" },
 ];
 
 const Index = () => {
@@ -70,37 +70,37 @@ const Index = () => {
 
   return (
     <PublicLayout>
-      {/* HERO — animated grainy gradient, centered image above text, taller */}
+      {/* HERO — image-led, taller, advanced motion */}
       <section
         ref={heroRef}
-        className="relative overflow-hidden bg-aurora grain-overlay min-h-[92vh] flex items-center"
+        className="relative overflow-hidden bg-aurora grain-overlay min-h-[100vh] flex items-center"
       >
-        <div className="container relative z-10 py-20 md:py-28 flex flex-col items-center text-center gap-10">
+        <div className="container relative z-10 py-16 md:py-20 flex flex-col items-center text-center gap-8">
           <div
             ref={heroImgRef}
-            className="w-full max-w-lg md:max-w-2xl animate-float-soft"
+            className="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl animate-float-soft"
             style={{ transformStyle: "preserve-3d" }}
           >
-            <div className="relative rounded-3xl overflow-hidden glass-card-strong p-2">
+            <div className="relative rounded-[2rem] overflow-hidden glass-card-strong p-2 ring-gradient-hover">
               <img
                 src={heroImage}
                 alt="Heartwarming Pixar-style pet and owner illustration"
-                className="w-full h-auto rounded-2xl"
+                className="w-full h-auto rounded-[1.6rem]"
                 loading="eager"
               />
             </div>
           </div>
 
-          <div className="max-w-3xl">
-            <h1 className="font-heading text-5xl md:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1.05] tracking-tight">
+          <div className="max-w-2xl">
+            <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-[1.05] tracking-tight">
               Your Pet, Reimagined
               <br />
               <span className="text-primary">with AI Magic</span>
             </h1>
-            <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
+            <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-xl mx-auto">
               Transform pet photos into unique art, effortlessly. Create cherished keepsakes in seconds.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
               <Button variant="hero" size="xl" asChild>
                 <Link to="/create-art">
                   Create Your Pet Art <ArrowRight className="ml-1 h-4 w-4" />
@@ -110,7 +110,7 @@ const Index = () => {
                 <Link to="/gallery">Explore Gallery</Link>
               </Button>
             </div>
-            <p className="mt-5 text-sm text-muted-foreground flex items-center gap-1 justify-center">
+            <p className="mt-4 text-sm text-muted-foreground flex items-center gap-1 justify-center">
               <Sparkles className="h-4 w-4 text-primary" /> 5 free generations when you sign up — no credit card
               required
             </p>
@@ -118,7 +118,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* HOW IT WORKS — scroll-reveal stagger */}
+      {/* HOW IT WORKS — scroll-reveal stagger with premium hover */}
       <section ref={stepsRef} className="py-20 md:py-28 relative">
         <div className="container">
           <h2 className="reveal font-heading text-3xl md:text-4xl font-extrabold text-center text-foreground">
@@ -131,9 +131,9 @@ const Index = () => {
             {steps.map((step) => (
               <div
                 key={step.title}
-                className="reveal glass-card rounded-2xl p-6 text-center hover:-translate-y-1 transition-transform duration-300"
+                className="reveal glass-card card-lift ring-gradient-hover rounded-2xl p-6 text-center group"
               >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
                   <step.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-heading text-lg font-semibold text-foreground">{step.title}</h3>
@@ -144,7 +144,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
+      {/* TESTIMONIALS — with avatar circles bottom-right */}
       <section ref={testimonialsRef} className="py-20 md:py-28 relative bg-aurora grain-overlay">
         <div className="container relative z-10">
           <h2 className="reveal font-heading text-3xl md:text-4xl font-extrabold text-center text-foreground">
@@ -152,7 +152,10 @@ const Index = () => {
           </h2>
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div key={t.author} className="reveal glass-card rounded-2xl p-6">
+              <div
+                key={t.author}
+                className="reveal glass-card card-lift ring-gradient-hover rounded-2xl p-6 pb-16 relative overflow-hidden"
+              >
                 <div className="flex gap-1 mb-3">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-warning text-warning" />
@@ -160,6 +163,14 @@ const Index = () => {
                 </div>
                 <p className="text-sm text-foreground italic">"{t.text}"</p>
                 <p className="mt-3 text-xs font-semibold text-muted-foreground">— {t.author}</p>
+
+                {/* Placeholder portrait circle, bottom-right */}
+                <div
+                  className={`absolute bottom-4 right-4 h-12 w-12 rounded-full bg-gradient-to-br ${t.tone} flex items-center justify-center text-sm font-bold text-white shadow-md ring-2 ring-background`}
+                  aria-hidden
+                >
+                  {t.initials}
+                </div>
               </div>
             ))}
           </div>

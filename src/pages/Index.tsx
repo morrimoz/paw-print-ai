@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import heroImage from "@/assets/hero-pixar.jpg";
+import heroImage from "@/assets/hero-explain.jpg";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,7 +19,10 @@ const steps = [
 
 const testimonials = [
   { text: "PawPrint AI turned my dog's photo into a stunning piece of art I'll treasure forever!", author: "Sarah M." },
-  { text: "The process was so easy, and the final portrait exceeded all my expectations. Highly recommend!", author: "James K." },
+  {
+    text: "The process was so easy, and the final portrait exceeded all my expectations. Highly recommend!",
+    author: "James K.",
+  },
   { text: "I love my cat's AI portrait! It captures her perfectly and looks amazing on my wall.", author: "Mia R." },
 ];
 
@@ -108,7 +111,8 @@ const Index = () => {
               </Button>
             </div>
             <p className="mt-5 text-sm text-muted-foreground flex items-center gap-1 justify-center">
-              <Sparkles className="h-4 w-4 text-primary" /> 5 free generations when you sign up — no credit card required
+              <Sparkles className="h-4 w-4 text-primary" /> 5 free generations when you sign up — no credit card
+              required
             </p>
           </div>
         </div>

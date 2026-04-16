@@ -111,7 +111,7 @@ const Checkout = () => {
                   }
                 : undefined
             }
-            customerEmail={profile?.email || user.email}
+            customerEmail={user.email}
             userId={user.id}
             returnUrl={returnUrl}
           />

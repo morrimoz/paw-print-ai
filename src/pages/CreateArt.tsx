@@ -6,17 +6,21 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import styleBlackWhite from "@/assets/style-blackandwhite.webp";
+import stylePixar from "@/assets/style-pixar.jpg";
+import styleRenaissance from "@/assets/style-renaissance.webp";
+import styleWatercolor from "@/assets/style-watercolor.webp";
+import styleHumorous from "@/assets/style-humorous.webp";
+import styleCartoon from "@/assets/style-cartoon.webp";
 
 const artStyles = [
-  { id: "watercolor", name: "Watercolor", icon: Palette },
-  { id: "pop-art", name: "Pop Art", icon: Zap },
-  { id: "anime", name: "Anime", icon: Star },
-  { id: "oil-painting", name: "Oil Painting", icon: Brush },
-  { id: "sketch", name: "Sketch", icon: PenTool },
-  { id: "comic", name: "Comic Book", icon: Layers },
+  { id: "dramatic-bw", name: "Dramatic B&W", image: styleBlackWhite },
+  { id: "pixar", name: "Pixar Movie", image: stylePixar },
+  { id: "renaissance-oil", name: "Renaissance Oil", image: styleRenaissance },
+  { id: "watercolor", name: "Watercolor Art", image: styleWatercolor },
+  { id: "humorous", name: "Humorous Scenes", image: styleHumorous },
+  { id: "cartoon", name: "Cartoon", image: styleCartoon },
 ];
-
-import { Palette, Zap, Star, Brush, PenTool, Layers } from "lucide-react";
 
 const CreateArt = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -62,9 +66,7 @@ const CreateArt = () => {
       e.preventDefault();
       e.stopPropagation();
       dragCounter.current--;
-      if (dragCounter.current === 0) {
-        setIsDraggingOver(false);
-      }
+      if (dragCounter.current === 0) setIsDraggingOver(false);
     };
     const handleDragOver = (e: DragEvent) => {
       e.preventDefault();
@@ -142,8 +144,8 @@ const CreateArt = () => {
     <DashboardLayout>
       {/* Full-page drag overlay */}
       {isDraggingOver && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4 p-12 rounded-2xl border-2 border-dashed border-primary bg-card/80">
+        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 p-12 rounded-2xl border-2 border-dashed border-primary glass-card-strong">
             <ImagePlus className="h-16 w-16 text-primary" />
             <p className="text-xl font-heading font-bold text-foreground">Drop your pet's photo here</p>
             <p className="text-sm text-muted-foreground">JPG or PNG, max 10MB</p>
@@ -190,24 +192,55 @@ const CreateArt = () => {
           />
         </div>
 
-        {/* Style Selection */}
+        {/* Style Selection — image-on-hover cards */}
         <div className="mb-8">
           <h2 className="font-heading text-lg font-semibold text-foreground mb-3">3. Choose Your Art Style (Optional)</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {artStyles.map((style) => {
-              const Icon = style.icon;
+              const isSelected = selectedStyle === style.id;
               return (
                 <button
                   key={style.id}
-                  onClick={() => setSelectedStyle(selectedStyle === style.id ? null : style.id)}
-                  className={`rounded-xl p-4 text-center transition-all border-2 ${
-                    selectedStyle === style.id
-                      ? "border-primary bg-accent shadow-card"
-                      : "border-border bg-card hover:border-primary/50"
+                  onClick={() => setSelectedStyle(isSelected ? null : style.id)}
+                  className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                    isSelected
+                      ? "border-primary shadow-lg ring-2 ring-primary/30"
+                      : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <Icon className="h-6 w-6 mx-auto mb-1 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{style.name}</span>
+                  {/* Background image — visible when selected OR on hover */}
+                  <img
+                    src={style.image}
+                    alt={style.name}
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                      isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
+                    loading="lazy"
+                  />
+                  {/* Default solid backdrop */}
+                  <div
+                    className={`absolute inset-0 bg-card transition-opacity duration-500 ${
+                      isSelected ? "opacity-0" : "opacity-100 group-hover:opacity-0"
+                    }`}
+                  />
+                  {/* Gradient bottom for text readability */}
+                  <div
+                    className={`absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-500 ${
+                      isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    }`}
+                  />
+                  {/* Label */}
+                  <div className="absolute inset-0 flex items-end justify-center p-3">
+                    <span
+                      className={`text-sm font-semibold transition-colors duration-300 ${
+                        isSelected
+                          ? "text-white drop-shadow-md"
+                          : "text-foreground group-hover:text-white group-hover:drop-shadow-md"
+                      }`}
+                    >
+                      {style.name}
+                    </span>
+                  </div>
                 </button>
               );
             })}

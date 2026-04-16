@@ -78,7 +78,7 @@ const Index = () => {
         <div className="container relative z-10 py-20 md:py-28 flex flex-col items-center text-center gap-10">
           <div
             ref={heroImgRef}
-            className="w-full max-w-md md:max-w-lg animate-float-soft"
+            className="w-full max-w-lg md:max-w-2xl animate-float-soft"
             style={{ transformStyle: "preserve-3d" }}
           >
             <div className="relative rounded-3xl overflow-hidden glass-card-strong p-2">

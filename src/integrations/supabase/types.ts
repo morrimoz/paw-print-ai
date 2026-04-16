@@ -56,6 +56,7 @@ export type Database = {
           id: string
           name: string
           price: number
+          price_lookup_key: string | null
           stripe_price_id: string | null
         }
         Insert: {
@@ -63,6 +64,7 @@ export type Database = {
           id?: string
           name: string
           price: number
+          price_lookup_key?: string | null
           stripe_price_id?: string | null
         }
         Update: {
@@ -70,6 +72,7 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          price_lookup_key?: string | null
           stripe_price_id?: string | null
         }
         Relationships: []
@@ -142,6 +145,7 @@ export type Database = {
           quantity: number
           shipping_address: Json
           status: string
+          stripe_checkout_session_id: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -155,6 +159,7 @@ export type Database = {
           quantity?: number
           shipping_address: Json
           status?: string
+          stripe_checkout_session_id?: string | null
           total_amount: number
           updated_at?: string
           user_id: string
@@ -168,6 +173,7 @@ export type Database = {
           quantity?: number
           shipping_address?: Json
           status?: string
+          stripe_checkout_session_id?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string

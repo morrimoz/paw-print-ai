@@ -26,9 +26,10 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    let result;
+    let result: unknown;
 
     switch (action) {
+      // ---------- CATALOG (v1 — stable, paginated, rich data) ----------
       case "categories": {
         const res = await fetch(`${PRINTFUL_BASE}/categories`, { headers });
         if (!res.ok) throw new Error(`Printful categories failed [${res.status}]: ${await res.text()}`);
@@ -47,7 +48,8 @@ serve(async (req) => {
         break;
       }
 
-      case "product": {
+      case "product":
+      case "variants": {
         const productId = url.searchParams.get("product_id");
         if (!productId) throw new Error("product_id is required");
         const res = await fetch(`${PRINTFUL_BASE}/products/${productId}`, { headers });
@@ -56,22 +58,14 @@ serve(async (req) => {
         break;
       }
 
-      case "variants": {
-        const productId = url.searchParams.get("product_id");
-        if (!productId) throw new Error("product_id is required");
-        const res = await fetch(`${PRINTFUL_BASE}/products/${productId}`, { headers });
-        if (!res.ok) throw new Error(`Printful variants failed [${res.status}]: ${await res.text()}`);
-        result = await res.json();
-        break;
-      }
-
+      // ---------- MOCKUPS (v2 — async task with polling) ----------
       case "mockup-styles": {
         const productId = url.searchParams.get("product_id");
         if (!productId) throw new Error("product_id is required");
-        // Use v2 API for mockup styles
-        const res = await fetch(`${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-styles`, {
-          headers,
-        });
+        const res = await fetch(
+          `${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-styles`,
+          { headers }
+        );
         if (!res.ok) {
           console.error(`Mockup styles failed [${res.status}]: ${await res.text()}`);
           result = { data: [] };
@@ -84,10 +78,10 @@ serve(async (req) => {
       case "mockup-templates": {
         const productId = url.searchParams.get("product_id");
         if (!productId) throw new Error("product_id is required");
-        // Use v2 API for mockup templates
-        const res = await fetch(`${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-templates`, {
-          headers,
-        });
+        const res = await fetch(
+          `${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-templates`,
+          { headers }
+        );
         if (!res.ok) {
           console.error(`Mockup templates failed [${res.status}]: ${await res.text()}`);
           result = { data: [] };
@@ -99,209 +93,150 @@ serve(async (req) => {
 
       case "create-mockup": {
         const body = await req.json();
-        const { product_id, variant_ids, image_url, mockup_style_ids } = body;
-        if (!product_id || !image_url) throw new Error("product_id and image_url are required");
+        const { product_id, variant_ids, image_url } = body as {
+          product_id: number | string;
+          variant_ids?: number[];
+          image_url: string;
+          mockup_style_ids?: number[];
+        };
+        let { mockup_style_ids } = body as { mockup_style_ids?: number[] };
 
-        // Step 1: Get mockup styles if not provided
-        let styleIds = mockup_style_ids;
-        if (!styleIds || styleIds.length === 0) {
+        if (!product_id || !image_url) {
+          throw new Error("product_id and image_url are required");
+        }
+
+        // 1) Resolve mockup styles if not provided — use the first available style.
+        if (!mockup_style_ids?.length) {
           try {
-            const stylesRes = await fetch(`${PRINTFUL_BASE}/v2/catalog-products/${product_id}/mockup-styles`, { headers });
+            const stylesRes = await fetch(
+              `${PRINTFUL_BASE}/v2/catalog-products/${product_id}/mockup-styles`,
+              { headers }
+            );
             if (stylesRes.ok) {
               const stylesData = await stylesRes.json();
               const styles = stylesData?.data || [];
-              // Pick the first style (usually "front" view)
-              if (styles.length > 0) {
-                styleIds = [styles[0].id];
-              }
+              if (styles.length > 0) mockup_style_ids = [styles[0].id];
             }
           } catch (e) {
-            console.error("Failed to get mockup styles:", e);
+            console.error("mockup-styles lookup failed:", e);
           }
         }
 
-        // Step 2: Get mockup templates to know placement details
-        let placements: any[] = [];
+        // 2) Resolve placements via mockup-templates so we know the real placement key
+        //    (front, back, etc.) and print-area dimensions.
+        let placement = "front";
+        let position: Record<string, number> | undefined;
         try {
-          const templatesRes = await fetch(`${PRINTFUL_BASE}/v2/catalog-products/${product_id}/mockup-templates`, { headers });
+          const templatesRes = await fetch(
+            `${PRINTFUL_BASE}/v2/catalog-products/${product_id}/mockup-templates`,
+            { headers }
+          );
           if (templatesRes.ok) {
             const templatesData = await templatesRes.json();
-            placements = templatesData?.data || [];
+            const templates = templatesData?.data || [];
+            if (templates.length > 0) {
+              const t = templates[0];
+              if (t.placement) placement = t.placement;
+              if (t.print_area) {
+                const w = t.print_area.width || 1800;
+                const h = t.print_area.height || 2400;
+                position = {
+                  area_width: w,
+                  area_height: h,
+                  width: w,
+                  height: h,
+                  top: 0,
+                  left: 0,
+                };
+              }
+            }
           }
         } catch (e) {
-          console.error("Failed to get mockup templates:", e);
+          console.error("mockup-templates lookup failed:", e);
         }
 
-        // Build placement data from templates
-        const placementConfigs: any[] = [];
-        if (placements.length > 0) {
-          // Use the first template's placement info
-          const template = placements[0];
-          placementConfigs.push({
-            placement: template.placement || "front",
-            image_url: image_url,
-            position: template.print_area ? {
-              area_width: template.print_area.width || 1800,
-              area_height: template.print_area.height || 2400,
-              width: template.print_area.width || 1800,
-              height: template.print_area.height || 2400,
-              top: 0,
-              left: 0,
-            } : {
-              area_width: 1800,
-              area_height: 2400,
-              width: 1800,
-              height: 2400,
-              top: 0,
-              left: 0,
+        // 3) Create the mockup task (v2 async API).
+        const mockupBody: Record<string, unknown> = {
+          catalog_product_id: Number(product_id),
+          ...(variant_ids?.length ? { catalog_variant_ids: variant_ids } : {}),
+          ...(mockup_style_ids?.length ? { mockup_style_ids } : {}),
+          placements: [
+            {
+              placement,
+              image_url,
+              ...(position ? { position } : {}),
             },
-          });
-        } else {
-          // Fallback placement
-          placementConfigs.push({
-            placement: "front",
-            image_url: image_url,
-            position: {
-              area_width: 1800,
-              area_height: 2400,
-              width: 1800,
-              height: 2400,
-              top: 0,
-              left: 0,
-            },
-          });
-        }
+          ],
+        };
 
-        // Step 3: Try v2 mockup task creation
         try {
-          const mockupBody: Record<string, unknown> = {
-            catalog_product_id: Number(product_id),
-            catalog_variant_ids: variant_ids || [],
-            mockup_style_ids: styleIds || [],
-            placements: placementConfigs.map(p => ({
-              placement: p.placement,
-              image_url: p.image_url,
-              ...(p.position ? { position: p.position } : {}),
-            })),
-          };
-
-          const mockupRes = await fetch(`${PRINTFUL_BASE}/v2/mockup-tasks`, {
+          const taskRes = await fetch(`${PRINTFUL_BASE}/v2/mockup-tasks`, {
             method: "POST",
             headers,
             body: JSON.stringify(mockupBody),
           });
 
-          if (mockupRes.ok) {
-            const taskData = await mockupRes.json();
+          if (taskRes.ok) {
+            const taskData = await taskRes.json();
             const taskId = taskData?.data?.id;
 
             if (taskId) {
-              // Poll for result (max 30s)
+              // Poll up to ~30s
               for (let i = 0; i < 15; i++) {
                 await new Promise((r) => setTimeout(r, 2000));
-                const statusRes = await fetch(`${PRINTFUL_BASE}/v2/mockup-tasks?id=${taskId}`, { headers });
-                if (statusRes.ok) {
-                  const statusData = await statusRes.json();
-                  const task = statusData?.data;
-                  if (task?.status === "completed") {
-                    result = {
-                      code: 200,
-                      result: {
-                        mockups: (task.catalog_variant_mockups || []).map((m: any) => ({
-                          placement: m.placement,
-                          variant_ids: m.catalog_variant_ids || [],
-                          mockup_url: m.mockup_url,
-                        })),
-                      },
-                    };
-                    break;
-                  } else if (task?.status === "failed") {
-                    console.error("Mockup task failed:", task.failure_reasons);
-                    break;
-                  }
+                const statusRes = await fetch(
+                  `${PRINTFUL_BASE}/v2/mockup-tasks?id=${taskId}`,
+                  { headers }
+                );
+                if (!statusRes.ok) continue;
+                const statusData = await statusRes.json();
+                const task = statusData?.data;
+                if (task?.status === "completed") {
+                  const mockups = (task.catalog_variant_mockups || []).flatMap((v: any) =>
+                    (v.mockups || []).map((m: any) => ({
+                      placement: m.placement,
+                      variant_ids: [v.catalog_variant_id],
+                      mockup_url: m.mockup_url,
+                    }))
+                  );
+                  result = { code: 200, result: { mockups } };
+                  break;
+                }
+                if (task?.status === "failed") {
+                  console.error("Mockup task failed:", task.failure_reasons);
+                  break;
                 }
               }
             }
           } else {
-            const errText = await mockupRes.text();
-            console.error("v2 mockup creation failed:", errText);
+            console.error("v2 mockup-tasks create failed:", await taskRes.text());
           }
         } catch (e) {
-          console.error("v2 mockup error:", e);
-        }
-
-        // If v2 failed, try v1 fallback
-        if (!result) {
-          try {
-            const v1Body = {
-              variant_ids: variant_ids || [],
-              files: [{
-                placement: "default",
-                image_url: image_url,
-                position: {
-                  area_width: 1800,
-                  area_height: 2400,
-                  width: 1800,
-                  height: 2400,
-                  top: 0,
-                  left: 0,
-                },
-              }],
-            };
-
-            const v1Res = await fetch(`${PRINTFUL_BASE}/mockup-generator/create-task/${product_id}`, {
-              method: "POST",
-              headers,
-              body: JSON.stringify(v1Body),
-            });
-
-            if (v1Res.ok) {
-              const taskData = await v1Res.json();
-              const taskKey = taskData?.result?.task_key;
-              if (taskKey) {
-                for (let i = 0; i < 15; i++) {
-                  await new Promise((r) => setTimeout(r, 2000));
-                  const statusRes = await fetch(`${PRINTFUL_BASE}/mockup-generator/task?task_key=${taskKey}`, { headers });
-                  if (statusRes.ok) {
-                    const statusData = await statusRes.json();
-                    if (statusData?.result?.status === "completed") {
-                      result = { code: 200, result: statusData.result };
-                      break;
-                    } else if (statusData?.result?.status === "failed") {
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            console.error("v1 mockup fallback error:", e);
-          }
+          console.error("v2 mockup-task error:", e);
         }
 
         if (!result) {
+          // Graceful: tell client the mockup is unavailable; UI will show product image only.
           result = { code: 200, result: { mockups: [], fallback: true } };
         }
         break;
       }
 
+      // ---------- ORDERS ----------
       case "create-order": {
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) throw new Error("Authorization required for orders");
 
         const body = await req.json();
         const { items, shipping_address } = body;
-        if (!items || !shipping_address) throw new Error("items and shipping_address are required");
-
-        const orderBody = {
-          recipient: shipping_address,
-          items: items,
-        };
+        if (!items || !shipping_address) {
+          throw new Error("items and shipping_address are required");
+        }
 
         const res = await fetch(`${PRINTFUL_BASE}/orders`, {
           method: "POST",
           headers,
-          body: JSON.stringify(orderBody),
+          body: JSON.stringify({ recipient: shipping_address, items }),
         });
 
         if (!res.ok) throw new Error(`Printful order failed [${res.status}]: ${await res.text()}`);

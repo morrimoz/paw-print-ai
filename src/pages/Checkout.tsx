@@ -1,56 +1,121 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { ArrowLeft } from "lucide-react";
+
+interface OrderItem {
+  variant_id: number;
+  variant_name?: string;
+  product_title?: string;
+  product_image?: string;
+  size?: string;
+  color?: string;
+  price: string; // already marked-up display price like "$34.99"
+  artwork_url: string;
+}
+
+interface CheckoutLocationState {
+  orderItem?: OrderItem;
+  treatPriceId?: string;
+  treatPackName?: string;
+}
+
+function priceToCents(price: string): number {
+  const n = Number(price.replace(/[^0-9.]/g, ""));
+  return Math.round(n * 100);
+}
 
 const Checkout = () => {
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, profile } = useAuth();
+  const state = (location.state || {}) as CheckoutLocationState;
+  const { orderItem, treatPriceId } = state;
 
-  const handleOrder = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      toast.info("Checkout requires Stripe integration.");
-      setLoading(false);
-    }, 500);
-  };
+  const returnUrl = `${window.location.origin}/order-success?session_id={CHECKOUT_SESSION_ID}`;
+
+  if (!user) {
+    return (
+      <DashboardLayout>
+        <p className="text-center text-muted-foreground py-12">Please sign in to checkout.</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (!orderItem && !treatPriceId) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-lg mx-auto text-center py-12">
+          <h1 className="font-heading text-2xl font-bold text-foreground">Nothing to checkout</h1>
+          <p className="mt-2 text-muted-foreground">
+            Pick a product or treat pack to get started.
+          </p>
+          <div className="mt-6 flex gap-3 justify-center">
+            <Button asChild variant="outline"><Link to="/gallery">Browse products</Link></Button>
+            <Button asChild><Link to="/my-treats">Buy treats</Link></Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      <div className="max-w-lg mx-auto">
-        <h1 className="font-heading text-3xl font-extrabold text-foreground mb-8">Checkout</h1>
+      <PaymentTestModeBanner />
+      <div className="max-w-3xl mx-auto py-6">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2 mb-4 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Button>
+        <h1 className="font-heading text-3xl font-extrabold text-foreground mb-6">Checkout</h1>
 
-        <div className="bg-card rounded-xl shadow-card p-6 mb-6">
-          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Order Summary</h2>
-          <div className="flex justify-between text-sm text-muted-foreground border-b border-border pb-3 mb-3">
-            <span>Canvas Print (16x20)</span>
-            <span>$34.99</span>
+        {orderItem && (
+          <div className="bg-card rounded-xl shadow-card p-5 mb-6 flex gap-4 items-center">
+            {orderItem.product_image && (
+              <img src={orderItem.product_image} alt={orderItem.product_title} className="h-20 w-20 object-cover rounded-lg" />
+            )}
+            <div className="flex-1">
+              <p className="font-semibold text-foreground">{orderItem.product_title}</p>
+              <p className="text-sm text-muted-foreground">
+                {[orderItem.size, orderItem.color].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+            <p className="font-bold text-foreground">{orderItem.price}</p>
           </div>
-          <div className="flex justify-between text-sm text-muted-foreground border-b border-border pb-3 mb-3">
-            <span>Shipping</span>
-            <span>$5.99</span>
+        )}
+
+        {treatPriceId && state.treatPackName && (
+          <div className="bg-card rounded-xl shadow-card p-5 mb-6">
+            <p className="font-semibold text-foreground">{state.treatPackName}</p>
+            <p className="text-sm text-muted-foreground">One-time treat purchase</p>
           </div>
-          <div className="flex justify-between font-semibold text-foreground">
-            <span>Total</span>
-            <span>$40.98</span>
-          </div>
+        )}
+
+        <div className="bg-card rounded-xl shadow-card p-2">
+          <StripeEmbeddedCheckout
+            priceId={treatPriceId}
+            merch={
+              orderItem
+                ? {
+                    name: `${orderItem.product_title || "Custom Pet Product"}${orderItem.size || orderItem.color ? ` (${[orderItem.size, orderItem.color].filter(Boolean).join(", ")})` : ""}`,
+                    amountCents: priceToCents(orderItem.price),
+                    productImage: orderItem.product_image,
+                    productTitle: orderItem.product_title,
+                    variantId: orderItem.variant_id,
+                    variantName: orderItem.variant_name,
+                    size: orderItem.size,
+                    color: orderItem.color,
+                    artworkUrl: orderItem.artwork_url,
+                  }
+                : undefined
+            }
+            customerEmail={profile?.email || user.email}
+            userId={user.id}
+            returnUrl={returnUrl}
+          />
         </div>
-
-        <form onSubmit={handleOrder} className="bg-card rounded-xl shadow-card p-6 flex flex-col gap-4">
-          <h2 className="font-heading text-lg font-semibold text-foreground">Shipping Details</h2>
-          <input type="text" placeholder="Full Name" required className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-          <input type="text" placeholder="Address" required className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-          <div className="grid grid-cols-2 gap-3">
-            <input type="text" placeholder="City" required className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-            <input type="text" placeholder="ZIP Code" required className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-          <input type="text" placeholder="Country" required className="w-full rounded-sm border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-
-          <Button type="submit" variant="hero" disabled={loading} className="w-full mt-2">
-            {loading ? "Processing..." : "Complete Order"}
-          </Button>
-        </form>
       </div>
     </DashboardLayout>
   );

@@ -136,16 +136,16 @@
 }
 
 @layer utilities {
-  /* Animated grainy gradient mesh background */
+  /* Animated grainy gradient mesh background — slower, smoother loop */
   .bg-aurora {
     background:
-      radial-gradient(at 20% 20%, hsl(var(--grad-1) / 0.8) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsl(var(--grad-2) / 0.7) 0px, transparent 50%),
-      radial-gradient(at 0% 80%, hsl(var(--grad-3) / 0.6) 0px, transparent 50%),
-      radial-gradient(at 80% 80%, hsl(var(--grad-4) / 0.7) 0px, transparent 50%),
+      radial-gradient(at 20% 20%, hsl(var(--grad-1) / 0.85) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(var(--grad-2) / 0.75) 0px, transparent 50%),
+      radial-gradient(at 0% 80%, hsl(var(--grad-3) / 0.65) 0px, transparent 50%),
+      radial-gradient(at 80% 80%, hsl(var(--grad-4) / 0.75) 0px, transparent 50%),
       hsl(var(--background));
-    background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%;
-    animation: aurora-drift 22s ease-in-out infinite;
+    background-size: 220% 220%, 220% 220%, 220% 220%, 220% 220%, 100% 100%;
+    animation: aurora-drift 38s ease-in-out infinite;
   }
 
   @keyframes aurora-drift {
@@ -153,27 +153,48 @@
       background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0 0;
     }
     25% {
-      background-position: 30% 20%, 70% 30%, 20% 70%, 80% 60%, 0 0;
+      background-position: 30% 25%, 70% 30%, 25% 70%, 80% 60%, 0 0;
     }
     50% {
-      background-position: 60% 40%, 40% 60%, 50% 50%, 60% 40%, 0 0;
+      background-position: 60% 45%, 40% 60%, 55% 50%, 60% 40%, 0 0;
     }
     75% {
-      background-position: 30% 70%, 60% 80%, 70% 30%, 40% 20%, 0 0;
+      background-position: 30% 70%, 60% 80%, 70% 30%, 40% 25%, 0 0;
     }
   }
 
-  /* SVG grain overlay using inline data URI */
+  /* Animated SVG grain overlay — slow drift on loop */
   .grain-overlay::after {
     content: "";
     position: absolute;
-    inset: 0;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
     pointer-events: none;
-    opacity: 0.18;
+    opacity: 0.16;
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     background-size: 220px 220px;
+    animation: grain-drift 14s steps(8) infinite;
     z-index: 1;
+  }
+
+  @keyframes grain-drift {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-3%, 2%); }
+    40%  { transform: translate(2%, -3%); }
+    60%  { transform: translate(-2%, -2%); }
+    80%  { transform: translate(3%, 1%); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* Compact grainy gradient suitable for cards (no animation, lighter cost) */
+  .bg-mesh-card {
+    background:
+      radial-gradient(at 25% 30%, hsl(var(--grad-1) / 0.55) 0px, transparent 55%),
+      radial-gradient(at 75% 20%, hsl(var(--grad-2) / 0.45) 0px, transparent 55%),
+      radial-gradient(at 50% 90%, hsl(var(--grad-4) / 0.5) 0px, transparent 55%),
+      hsl(var(--card));
   }
 
   /* Liquid glass card */
@@ -192,6 +213,51 @@
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
     border: 1px solid hsl(var(--border) / 0.8);
+  }
+
+  /* Premium card hover — lift + glow + subtle inner highlight */
+  .card-lift {
+    transition:
+      transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+      border-color 0.3s ease;
+    will-change: transform, box-shadow;
+  }
+  .card-lift:hover {
+    transform: translateY(-6px);
+    box-shadow:
+      0 24px 48px -16px hsl(var(--primary) / 0.28),
+      0 8px 24px -8px hsl(var(--foreground) / 0.18),
+      inset 0 1px 0 hsl(0 0% 100% / 0.12);
+    border-color: hsl(var(--primary) / 0.4);
+  }
+
+  /* Animated gradient ring on hover (liquid border vibe) */
+  .ring-gradient-hover {
+    position: relative;
+  }
+  .ring-gradient-hover::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)), hsl(var(--primary)));
+    background-size: 200% 200%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    animation: gradient-shift 5s linear infinite;
+    pointer-events: none;
+  }
+  .ring-gradient-hover:hover::before { opacity: 1; }
+
+  @keyframes gradient-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 
   /* Subtle floating animation for hero image */

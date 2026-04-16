@@ -13,7 +13,7 @@ interface OrderItem {
   product_image?: string;
   size?: string;
   color?: string;
-  price: string; // already marked-up display price like "$34.99"
+  price: string | number; // display price like "$34.99" or numeric
   artwork_url: string;
 }
 
@@ -23,8 +23,8 @@ interface CheckoutLocationState {
   treatPackName?: string;
 }
 
-function priceToCents(price: string): number {
-  const n = Number(price.replace(/[^0-9.]/g, ""));
+function priceToCents(price: string | number): number {
+  const n = Number(String(price ?? "0").replace(/[^0-9.]/g, ""));
   return Math.round(n * 100);
 }
 
@@ -82,7 +82,7 @@ const Checkout = () => {
                 {[orderItem.size, orderItem.color].filter(Boolean).join(" · ")}
               </p>
             </div>
-            <p className="font-bold text-foreground">{orderItem.price}</p>
+            <p className="font-bold text-foreground">{typeof orderItem.price === "number" ? `$${orderItem.price.toFixed(2)}` : orderItem.price}</p>
           </div>
         )}
 

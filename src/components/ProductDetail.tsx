@@ -201,7 +201,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
             ) : (
               <ShoppingCart className="h-4 w-4" />
             )}
-            Add to Order — {displayPrice}
+            Add to Order - {displayPrice}
           </Button>
 
           {!selectedVariant && (

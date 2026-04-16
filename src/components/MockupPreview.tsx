@@ -9,7 +9,7 @@ interface MockupPreviewProps {
 }
 
 /**
- * Renders a Printful-generated mockup. Never overlays the artwork on the product photo —
+ * Renders a Printful-generated mockup. Never overlays the artwork on the product photo -
  * if a real mockup is unavailable, we show the bare product image with a graceful loading
  * state explaining that the mockup is being generated.
  */
@@ -20,7 +20,7 @@ export function MockupPreview({
   mockupUrl,
   loading,
 }: MockupPreviewProps) {
-  // Real Printful mockup ready — render it.
+  // Real Printful mockup ready - render it.
   if (mockupUrl) {
     return (
       <div className="relative aspect-square rounded-2xl overflow-hidden glass-card">
@@ -53,7 +53,7 @@ export function MockupPreview({
     );
   }
 
-  // Mockup unavailable — show bare product photo with explainer (no overlay).
+  // Mockup unavailable - show bare product photo with explainer (no overlay).
   return (
     <div className="relative aspect-square rounded-2xl overflow-hidden glass-card">
       {productImage ? (
@@ -69,7 +69,7 @@ export function MockupPreview({
       )}
       <div className="absolute bottom-3 left-3 right-3 glass-card-strong rounded-lg p-2 text-center">
         <p className="text-[11px] text-muted-foreground">
-          Mockup preview unavailable for this product — your art will be applied at print time.
+          Mockup preview unavailable for this product - your art will be applied at print time.
         </p>
       </div>
     </div>

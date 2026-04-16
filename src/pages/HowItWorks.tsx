@@ -13,7 +13,7 @@ const steps = [
   {
     icon: Palette,
     title: "2. Choose Your Art Style",
-    description: "Browse our collection of AI art styles — watercolor, pop art, anime, oil painting, and more. Each style brings a unique personality to your pet's portrait.",
+    description: "Browse our collection of AI art styles - watercolor, pop art, anime, oil painting, and more. Each style brings a unique personality to your pet's portrait.",
   },
   {
     icon: Sparkles,
@@ -36,13 +36,13 @@ const HowItWorks = () => {
             How It Works
           </h1>
           <p className="mt-4 text-center text-lg text-muted-foreground">
-            From photo to masterpiece in minutes — no artistic skills needed.
+            From photo to masterpiece in minutes - no artistic skills needed.
           </p>
 
           <div className="mt-10">
             <img
               src={howItWorksHero}
-              alt="How PawPrint AI works — upload, transform, print"
+              alt="How PawPrint AI works - upload, transform, print"
               className="rounded-xl shadow-card w-full"
               loading="eager"
             />

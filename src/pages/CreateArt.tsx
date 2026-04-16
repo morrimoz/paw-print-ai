@@ -192,7 +192,7 @@ const CreateArt = () => {
           />
         </div>
 
-        {/* Style Selection — image-on-hover cards */}
+        {/* Style Selection - image default, gradient+icon on hover */}
         <div className="mb-8">
           <h2 className="font-heading text-lg font-semibold text-foreground mb-3">3. Choose Your Art Style (Optional)</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -209,32 +209,34 @@ const CreateArt = () => {
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  {/* Default state — grainy gradient mesh + icon */}
-                  <div
-                    className={`absolute inset-0 bg-mesh-card transition-opacity duration-500 ${
-                      isSelected ? "opacity-0" : "opacity-100 group-hover:opacity-0"
-                    }`}
-                  >
-                    <div className="absolute inset-0 grain-overlay" />
-                    <div className="relative z-10 h-full flex items-center justify-center">
-                      <Icon className="h-10 w-10 text-primary/80" strokeWidth={1.5} />
-                    </div>
-                  </div>
-
-                  {/* Hover/selected state — reveal style image */}
+                  {/* Default state - the style reference image */}
                   <img
                     src={style.image}
                     alt={style.name}
                     className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
-                      isSelected ? "opacity-100 scale-100" : "opacity-0 scale-105 group-hover:opacity-100 group-hover:scale-100"
+                      isSelected
+                        ? "opacity-100 scale-100"
+                        : "opacity-100 scale-100 group-hover:opacity-0 group-hover:scale-105"
                     }`}
                     loading="lazy"
                   />
 
-                  {/* Bottom gradient for label readability when image visible */}
+                  {/* Hover state - grainy gradient mesh + icon (hidden when selected) */}
+                  <div
+                    className={`absolute inset-0 bg-mesh-card transition-opacity duration-500 ${
+                      isSelected ? "opacity-0" : "opacity-0 group-hover:opacity-100"
+                    }`}
+                  >
+                    <div className="absolute inset-0 grain-overlay" />
+                    <div className="relative z-10 h-full flex items-center justify-center">
+                      <Icon className="h-10 w-10 text-primary" strokeWidth={1.5} />
+                    </div>
+                  </div>
+
+                  {/* Bottom gradient for label readability over image */}
                   <div
                     className={`absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-500 ${
-                      isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      isSelected ? "opacity-100" : "opacity-100 group-hover:opacity-0"
                     }`}
                   />
 
@@ -244,7 +246,7 @@ const CreateArt = () => {
                       className={`text-sm font-semibold transition-colors duration-300 ${
                         isSelected
                           ? "text-white drop-shadow-md"
-                          : "text-foreground group-hover:text-white group-hover:drop-shadow-md"
+                          : "text-white drop-shadow-md group-hover:text-foreground group-hover:drop-shadow-none"
                       }`}
                     >
                       {style.name}

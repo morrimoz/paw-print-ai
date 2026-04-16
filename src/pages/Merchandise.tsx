@@ -159,7 +159,7 @@ const Merchandise = () => {
                   </h2>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4">
-                  These products generate a real photo-mockup of your art via Printful — pick one to preview.
+                  These products generate a real photo-mockup of your art via Printful - pick one to preview.
                 </p>
                 <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
                   {mockupSupported.map((p) => (

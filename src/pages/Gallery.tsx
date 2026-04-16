@@ -1,5 +1,6 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { fetchProducts } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
@@ -75,7 +76,7 @@ const Gallery = () => {
             Merchandise Gallery
           </h1>
           <p className="mt-3 text-center text-muted-foreground max-w-xl mx-auto">
-            Browse our full catalog of premium products — every item can be customized with your AI-generated pet art.
+            Browse our full catalog of premium products - every item can be customized with your AI-generated pet art.
           </p>
 
           {/* Category filters */}
@@ -134,9 +135,10 @@ const Gallery = () => {
           {!loading && products.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((p) => (
-                <div
+                <Link
                   key={p.id}
-                  className="reveal group rounded-2xl glass-card overflow-hidden hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                  to={`/product/${p.id}`}
+                  className="reveal group rounded-2xl glass-card overflow-hidden card-lift ring-gradient-hover transition-all duration-300 cursor-pointer block"
                 >
                   <div className="aspect-square bg-muted relative overflow-hidden">
                     <img
@@ -158,7 +160,7 @@ const Gallery = () => {
                       From {getStartingPrice(["15.00"])}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

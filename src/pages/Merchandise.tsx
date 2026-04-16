@@ -141,13 +141,49 @@ const Merchandise = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-xl shadow-card p-4 mb-8 flex items-center gap-4">
+            <div className="glass-card rounded-xl p-4 mb-6 flex items-center gap-4">
               <img src={artworkUrl} alt="Your artwork" className="w-16 h-16 rounded-lg object-cover" />
               <div>
                 <p className="text-sm font-semibold text-foreground">Your Artwork</p>
                 <p className="text-xs text-muted-foreground capitalize">{artwork.style} style</p>
               </div>
             </div>
+
+            {/* Featured: products with live mockup previews from Printful */}
+            {mockupSupported.length > 0 && (
+              <div className="mb-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
+                    Live Mockup Available
+                  </h2>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  These products generate a real photo-mockup of your art via Printful — pick one to preview.
+                </p>
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+                  {mockupSupported.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedProduct(p)}
+                      className="flex-shrink-0 w-36 group text-left"
+                    >
+                      <div className="aspect-square rounded-xl overflow-hidden bg-card border border-border card-lift ring-gradient-hover">
+                        <img
+                          src={p.image}
+                          alt={p.title}
+                          className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                      </div>
+                      <p className="mt-2 text-xs font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                        {p.title}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col lg:flex-row gap-8">
               <aside className="lg:w-56 flex-shrink-0">

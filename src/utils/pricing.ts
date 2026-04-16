@@ -1,4 +1,8 @@
-const MARKUP_MULTIPLIER = 1.5;
+// 👉 To change product pricing, update this single multiplier.
+// It is applied to every Printful base price across the entire app
+// (gallery, product detail, checkout, order totals).
+// Example: 2.0 = 100% markup, 2.5 = 150% markup, 3.0 = 200% markup.
+const MARKUP_MULTIPLIER = 2.5;
 
 /**
  * Apply markup to Printful base price

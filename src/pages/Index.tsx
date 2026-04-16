@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/hero-explain.jpg";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -27,6 +28,8 @@ const testimonials = [
 ];
 
 const Index = () => {
+  const { user } = useAuth();
+  const ctaTarget = user ? "/create-art" : "/signup";
   const heroRef = useRef<HTMLElement | null>(null);
   const heroImgRef = useRef<HTMLDivElement | null>(null);
   const stepsRef = useScrollReveal<HTMLDivElement>(".reveal");
@@ -188,8 +191,8 @@ const Index = () => {
           </p>
           <div className="reveal mt-8">
             <Button variant="hero" size="xl" asChild>
-              <Link to="/signup">
-                Get Started Free <ArrowRight className="ml-1 h-4 w-4" />
+              <Link to={ctaTarget}>
+                {user ? "Create Your Pet Art" : "Get Started Free"} <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
           </div>

@@ -46,29 +46,37 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     }
   }
 
+  // Re-generate the mockup whenever the user picks a different size/color.
+  // We immediately clear the previous mockup so the UI shows the new variant's
+  // base image with a "rendering" loader instead of the old (wrong-size) mockup.
   useEffect(() => {
-    // Try to generate mockup
-    async function loadMockup() {
-      if (!artworkUrl) return;
-      setMockupLoading(true);
+    if (!artworkUrl) return;
+    const selectedVariant = getSelectedVariant();
+    if (!selectedVariant) return;
+
+    let cancelled = false;
+    setMockupUrl(null);
+    setMockupLoading(true);
+
+    (async () => {
       try {
-        const selectedVariant = getSelectedVariant();
-        const result = await createMockup(
-          product.id,
-          artworkUrl,
-          selectedVariant ? [selectedVariant.id] : undefined
-        );
+        const result = await createMockup(product.id, artworkUrl, [selectedVariant.id]);
+        if (cancelled) return;
         if (!result.fallback && result.mockups?.length > 0) {
           setMockupUrl(result.mockups[0].mockup_url);
         }
       } catch {
-        // Fallback to overlay
+        // Fallback handled by MockupPreview (shows variant image)
       } finally {
-        setMockupLoading(false);
+        if (!cancelled) setMockupLoading(false);
       }
-    }
-    loadMockup();
-  }, [product.id, artworkUrl]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id, artworkUrl, selectedSize, selectedColor, variants.length]);
 
   const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
   const colors = [...new Set(variants.map((v) => v.color).filter(Boolean))];
@@ -125,10 +133,10 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Mockup Preview */}
+        {/* Mockup Preview - falls back to the selected variant's image so size/color changes are reflected instantly */}
         <MockupPreview
           artworkUrl={artworkUrl}
-          productImage={product.image}
+          productImage={selectedVariant?.image || product.image}
           productTitle={product.title}
           mockupUrl={mockupUrl}
           loading={mockupLoading}

@@ -82,7 +82,7 @@ const Checkout = () => {
                 {[orderItem.size, orderItem.color].filter(Boolean).join(" · ")}
               </p>
             </div>
-            <p className="font-bold text-foreground">{orderItem.price}</p>
+            <p className="font-bold text-foreground">{typeof orderItem.price === "number" ? `$${orderItem.price.toFixed(2)}` : orderItem.price}</p>
           </div>
         )}
 

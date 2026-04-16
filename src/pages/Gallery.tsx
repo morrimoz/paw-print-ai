@@ -75,7 +75,7 @@ const Gallery = () => {
             Merchandise Gallery
           </h1>
           <p className="mt-3 text-center text-muted-foreground max-w-xl mx-auto">
-            Browse our full catalog of premium products — every item can be customized with your AI-generated pet art.
+            Browse our full catalog of premium products - every item can be customized with your AI-generated pet art.
           </p>
 
           {/* Category filters */}

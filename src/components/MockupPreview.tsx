@@ -69,7 +69,7 @@ export function MockupPreview({
       )}
       <div className="absolute bottom-3 left-3 right-3 glass-card-strong rounded-lg p-2 text-center">
         <p className="text-[11px] text-muted-foreground">
-          Mockup preview unavailable for this product — your art will be applied at print time.
+          Mockup preview unavailable for this product - your art will be applied at print time.
         </p>
       </div>
     </div>

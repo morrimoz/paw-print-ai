@@ -1,7 +1,7 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchProducts } from "@/services/printful";
+import { fetchProducts, checkMockupSupport } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
 import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
@@ -29,7 +29,39 @@ const Gallery = () => {
   const [productsByCat, setProductsByCat] = useState<Record<string, PrintfulProduct[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>([]);
+  const [mockupLoading, setMockupLoading] = useState(true);
   const gridRef = useScrollReveal<HTMLDivElement>(".reveal");
+
+  // Build a horizontal carousel of products that support live Printful mockups,
+  // pulled from the same product fetches we already use for the categories below.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setMockupLoading(true);
+      try {
+        const candidates: PrintfulProduct[] = [];
+        for (const catId of [21, 24, 112, 16]) {
+          try {
+            const prods = await fetchProducts(catId);
+            candidates.push(...prods.filter((p) => !p.is_discontinued).slice(0, 6));
+          } catch { /* skip */ }
+        }
+        const seen = new Set<number>();
+        const unique = candidates.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+        const supported: PrintfulProduct[] = [];
+        for (const p of unique) {
+          if (supported.length >= 12) break;
+          const ok = await checkMockupSupport(p.id);
+          if (ok) supported.push(p);
+        }
+        if (!cancelled) setMockupSupported(supported);
+      } finally {
+        if (!cancelled) setMockupLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

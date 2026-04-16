@@ -13,7 +13,7 @@ interface OrderItem {
   product_image?: string;
   size?: string;
   color?: string;
-  price: string; // already marked-up display price like "$34.99"
+  price: string | number; // display price like "$34.99" or numeric
   artwork_url: string;
 }
 

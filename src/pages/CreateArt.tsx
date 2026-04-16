@@ -96,6 +96,11 @@ const CreateArt = () => {
   const handleGenerate = async () => {
     if (!selectedFile || !user) return;
 
+    if (!prompt.trim()) {
+      toast.error("Please describe your vision before generating.");
+      return;
+    }
+
     if ((profile?.credits_balance ?? 0) < 1) {
       toast.error("Insufficient treats. Purchase more to continue.");
       navigate("/my-treats");
@@ -183,13 +188,17 @@ const CreateArt = () => {
 
         {/* Text Prompt */}
         <div className="mb-8">
-          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">2. Describe Your Vision (Optional)</h2>
+          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">
+            2. Describe Your Vision <span className="text-destructive">*</span>
+          </h2>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. My dog as a royal king wearing a crown, in a majestic castle setting..."
+            required
             className="w-full rounded-xl border-2 border-border bg-card p-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors resize-none min-h-[100px]"
           />
+          <p className="mt-2 text-xs text-muted-foreground">Tell us the scene - this drives what your pet is doing in the artwork.</p>
         </div>
 
         {/* Style Selection - image default, gradient+icon on hover */}
@@ -263,7 +272,7 @@ const CreateArt = () => {
           <Button
             className="bg-foreground text-background hover:bg-foreground/90 rounded-md shadow-md hover:shadow-lg text-base font-semibold h-12 px-10"
             onClick={handleGenerate}
-            disabled={!selectedFile || generating}
+            disabled={!selectedFile || !prompt.trim() || generating}
           >
             {generating ? (
               <>

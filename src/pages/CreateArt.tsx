@@ -192,7 +192,7 @@ const CreateArt = () => {
           />
         </div>
 
-        {/* Style Selection — image-on-hover cards */}
+        {/* Style Selection - image-on-hover cards */}
         <div className="mb-8">
           <h2 className="font-heading text-lg font-semibold text-foreground mb-3">3. Choose Your Art Style (Optional)</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -209,7 +209,7 @@ const CreateArt = () => {
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  {/* Default state — grainy gradient mesh + icon */}
+                  {/* Default state - grainy gradient mesh + icon */}
                   <div
                     className={`absolute inset-0 bg-mesh-card transition-opacity duration-500 ${
                       isSelected ? "opacity-0" : "opacity-100 group-hover:opacity-0"
@@ -221,7 +221,7 @@ const CreateArt = () => {
                     </div>
                   </div>
 
-                  {/* Hover/selected state — reveal style image */}
+                  {/* Hover/selected state - reveal style image */}
                   <img
                     src={style.image}
                     alt={style.name}

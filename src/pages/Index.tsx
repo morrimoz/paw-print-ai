@@ -70,7 +70,7 @@ const Index = () => {
 
   return (
     <PublicLayout>
-      {/* HERO — image-led, taller, advanced motion */}
+      {/* HERO - image-led, taller, advanced motion */}
       <section
         ref={heroRef}
         className="relative overflow-hidden bg-aurora grain-overlay min-h-[100vh] flex items-center"
@@ -111,14 +111,14 @@ const Index = () => {
               </Button>
             </div>
             <p className="mt-4 text-sm text-muted-foreground flex items-center gap-1 justify-center">
-              <Sparkles className="h-4 w-4 text-primary" /> 5 free generations when you sign up — no credit card
+              <Sparkles className="h-4 w-4 text-primary" /> 5 free generations when you sign up - no credit card
               required
             </p>
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS — scroll-reveal stagger with premium hover */}
+      {/* HOW IT WORKS - scroll-reveal stagger with premium hover */}
       <section ref={stepsRef} className="py-20 md:py-28 relative">
         <div className="container">
           <h2 className="reveal font-heading text-3xl md:text-4xl font-extrabold text-center text-foreground">
@@ -144,7 +144,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* TESTIMONIALS — with avatar circles bottom-right */}
+      {/* TESTIMONIALS - with avatar circles bottom-right */}
       <section ref={testimonialsRef} className="py-20 md:py-28 relative bg-aurora grain-overlay">
         <div className="container relative z-10">
           <h2 className="reveal font-heading text-3xl md:text-4xl font-extrabold text-center text-foreground">
@@ -162,7 +162,7 @@ const Index = () => {
                   ))}
                 </div>
                 <p className="text-sm text-foreground italic">"{t.text}"</p>
-                <p className="mt-3 text-xs font-semibold text-muted-foreground">— {t.author}</p>
+                <p className="mt-3 text-xs font-semibold text-muted-foreground">- {t.author}</p>
 
                 {/* Placeholder portrait circle, bottom-right */}
                 <div

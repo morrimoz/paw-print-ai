@@ -64,7 +64,7 @@ serve(async (req) => {
         break;
       }
 
-      // ---------- MOCKUPS (v1 — stable + well-supported) ----------
+      // ---------- MOCKUPS (v1 - stable + well-supported) ----------
       // Returns the print files (placements: front, back, default) supported by the product.
       // Used to know which products mockup-generator can render.
       case "printfiles": {
@@ -125,7 +125,7 @@ serve(async (req) => {
         }
 
         if (!supportedVariantIds.length) {
-          // No variants available — the mockup generator cannot run for this product.
+          // No variants available - the mockup generator cannot run for this product.
           result = { code: 200, result: { mockups: [], fallback: true, reason: "no_variants" } };
           break;
         }

@@ -3,7 +3,7 @@ import { Heart, Lightbulb, Shield, Smile } from "lucide-react";
 
 const values = [
   { icon: Heart, title: "Heartfelt", description: "We celebrate the bond between pets and their humans." },
-  { icon: Smile, title: "Playful", description: "Art should be fun — we bring joy to every creation." },
+  { icon: Smile, title: "Playful", description: "Art should be fun - we bring joy to every creation." },
   { icon: Shield, title: "Transparent", description: "Clear pricing, no hidden fees, your data stays yours." },
   { icon: Lightbulb, title: "Innovative", description: "Cutting-edge AI to deliver stunning, unique results." },
 ];
@@ -19,7 +19,7 @@ const About = () => {
           <p className="mt-6 text-lg text-muted-foreground text-center">
             We started PawPrint AI because we believe every pet deserves to be immortalized as a work of art.
             Traditional pet portraits are slow, expensive, and often generic. We're changing that with the
-            power of AI — making personalized, high-quality pet art accessible to everyone.
+            power of AI - making personalized, high-quality pet art accessible to everyone.
           </p>
 
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -36,7 +36,7 @@ const About = () => {
 
           <div className="mt-16 text-center">
             <p className="text-muted-foreground">
-              Have questions? <a href="/contact" className="text-primary hover:underline">Get in touch</a> — we'd love to hear from you.
+              Have questions? <a href="/contact" className="text-primary hover:underline">Get in touch</a> - we'd love to hear from you.
             </p>
           </div>
         </div>

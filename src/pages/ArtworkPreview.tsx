@@ -55,7 +55,7 @@ const ArtworkPreview = () => {
                   alt="Generated pet art"
                   className="w-full h-full object-contain p-4"
                 />
-                {/* Discreet download button — bottom right of image */}
+                {/* Discreet download button - bottom right of image */}
                 <a
                   href={artwork.generated_image_url}
                   download

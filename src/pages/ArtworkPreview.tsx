@@ -47,13 +47,26 @@ const ArtworkPreview = () => {
         <h1 className="font-heading text-3xl font-extrabold text-foreground mb-8">Your Artwork</h1>
 
         <div className="bg-card rounded-xl shadow-card overflow-hidden">
-          <div className="aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
+          <div className="relative aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
             {artwork?.generated_image_url ? (
-              <img
-                src={artwork.generated_image_url}
-                alt="Generated pet art"
-                className="w-full h-full object-contain p-4"
-              />
+              <>
+                <img
+                  src={artwork.generated_image_url}
+                  alt="Generated pet art"
+                  className="w-full h-full object-contain p-4"
+                />
+                {/* Discreet download button — bottom right of image */}
+                <a
+                  href={artwork.generated_image_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card-strong text-xs font-medium text-foreground hover:text-primary transition-colors"
+                  aria-label="Download HD"
+                >
+                  <Download className="h-3.5 w-3.5" /> HD
+                </a>
+              </>
             ) : (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Image className="h-12 w-12" />
@@ -65,22 +78,18 @@ const ArtworkPreview = () => {
             )}
           </div>
           {artwork && (
-            <div className="p-6">
-              <p className="text-sm text-muted-foreground mb-4">
+            <div className="p-6 text-center">
+              <p className="text-sm text-muted-foreground mb-1">
                 Style: <span className="font-medium text-foreground capitalize">{artwork.style}</span>
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button variant="outline" className="flex-1" asChild>
-                  <a href={artwork.generated_image_url} download target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-2" /> Download HD
-                  </a>
-                </Button>
-                <Button variant="hero" className="flex-1" asChild>
-                  <Link to="/merchandise" state={{ artwork }}>
-                    <ShoppingBag className="h-4 w-4 mr-2" /> Order Merchandise
-                  </Link>
-                </Button>
-              </div>
+              <p className="text-xs uppercase tracking-wider text-primary font-semibold mt-4 mb-2">
+                Next step
+              </p>
+              <Button variant="hero" size="xl" className="w-full sm:w-auto px-10" asChild>
+                <Link to="/merchandise" state={{ artwork }}>
+                  <ShoppingBag className="h-4 w-4 mr-2" /> Order Merchandise
+                </Link>
+              </Button>
             </div>
           )}
         </div>

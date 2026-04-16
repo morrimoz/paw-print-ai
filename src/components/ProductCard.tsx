@@ -11,19 +11,19 @@ export function ProductCard({ product, artworkUrl, onPreview }: ProductCardProps
   return (
     <div
       onClick={() => onPreview(product)}
-      className="group bg-card rounded-xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+      className="group bg-card rounded-xl overflow-hidden card-lift ring-gradient-hover cursor-pointer border border-border"
     >
       <div className="aspect-square bg-muted relative overflow-hidden">
         <img
           src={product.image}
           alt={product.title}
-          className="w-full h-full object-contain p-4"
+          className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
         />
         {artworkUrl && (
           <div className="absolute inset-0 bg-foreground/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <div className="bg-card/90 backdrop-blur-sm rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground font-medium">Click to preview with your art</p>
+            <div className="glass-card-strong rounded-lg px-3 py-2 text-center">
+              <p className="text-xs text-foreground font-medium">Click to preview with your art</p>
             </div>
           </div>
         )}

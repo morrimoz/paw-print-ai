@@ -1,7 +1,7 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, Info } from "lucide-react";
 
 const packages = [
   { name: "Starter Pack", treats: 10, price: 5, perTreat: "0.50", popular: false },
@@ -28,6 +28,16 @@ const Pricing = () => {
           <p className="mt-4 text-center text-lg text-muted-foreground max-w-lg mx-auto">
             Buy treats, create art. No subscriptions, no hidden fees. Each generation costs 1 treat.
           </p>
+
+          {/* Merch pricing callout */}
+          <div className="mt-8 max-w-2xl mx-auto glass-card rounded-xl p-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground text-left">
+              <span className="font-semibold text-foreground">Merchandise pricing is separate.</span>{" "}
+              Treats only cover AI art generation. Physical products (mugs, canvases, tees, etc.)
+              are priced per-item based on the product you choose at checkout.
+            </p>
+          </div>
 
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
             {packages.map((pkg) => (

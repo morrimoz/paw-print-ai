@@ -133,10 +133,10 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Mockup Preview */}
+        {/* Mockup Preview - falls back to the selected variant's image so size/color changes are reflected instantly */}
         <MockupPreview
           artworkUrl={artworkUrl}
-          productImage={product.image}
+          productImage={selectedVariant?.image || product.image}
           productTitle={product.title}
           mockupUrl={mockupUrl}
           loading={mockupLoading}

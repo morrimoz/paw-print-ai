@@ -23,8 +23,8 @@ interface CheckoutLocationState {
   treatPackName?: string;
 }
 
-function priceToCents(price: string): number {
-  const n = Number(price.replace(/[^0-9.]/g, ""));
+function priceToCents(price: string | number): number {
+  const n = Number(String(price ?? "0").replace(/[^0-9.]/g, ""));
   return Math.round(n * 100);
 }
 

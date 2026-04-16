@@ -91,7 +91,7 @@ export function Header() {
               <>
                 <Link to="/create-art" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>Create Art</Link>
                 <Link to="/my-orders" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>My Orders</Link>
-                <Link to="/my-credits" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>My Treats</Link>
+                <Link to="/my-treats" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>My Treats</Link>
                 <Link to="/my-profile" className="py-2 text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>My Profile</Link>
                 <button onClick={() => { handleSignOut(); setMobileOpen(false); }} className="py-2 text-sm text-destructive text-left">Sign Out</button>
               </>

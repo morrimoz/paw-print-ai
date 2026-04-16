@@ -27,6 +27,7 @@ import OrderSuccess from "./pages/OrderSuccess";
 import MyOrders from "./pages/MyOrders";
 import MyTreats from "./pages/MyTreats";
 import MyProfile from "./pages/MyProfile";
+import ProductPage from "./pages/ProductPage";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/gallery" element={<Gallery />} />
+            <Route path="/product/:productId" element={<ProductPage />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

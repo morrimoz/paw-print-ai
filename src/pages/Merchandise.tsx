@@ -3,11 +3,11 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProductGrid } from "@/components/ProductGrid";
 import { ProductDetail } from "@/components/ProductDetail";
-import { fetchProducts } from "@/services/printful";
+import { fetchProducts, checkMockupSupport } from "@/services/printful";
 import { UI_CATEGORIES } from "@/utils/productCategorization";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { toast } from "sonner";
-import { Image, ArrowLeft } from "lucide-react";
+import { Image, ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -21,12 +21,38 @@ const Merchandise = () => {
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState("wall-art");
   const [selectedProduct, setSelectedProduct] = useState<PrintfulProduct | null>(null);
+  const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>([]);
 
   useEffect(() => {
     if (!categoryProducts[activeCategory]) {
       loadCategoryProducts(activeCategory);
     }
   }, [activeCategory]);
+
+  // Find mockup-supported products across a few categories for the featured strip
+  useEffect(() => {
+    let cancelled = false;
+    async function loadFeatured() {
+      try {
+        const candidates: PrintfulProduct[] = [];
+        for (const catId of [21, 24, 112, 19]) {
+          try {
+            const prods = await fetchProducts(catId);
+            candidates.push(...prods.filter((p) => !p.is_discontinued).slice(0, 4));
+          } catch {/* skip */}
+        }
+        const supported: PrintfulProduct[] = [];
+        for (const p of candidates) {
+          if (supported.length >= 6) break;
+          const ok = await checkMockupSupport(p.id);
+          if (ok) supported.push(p);
+        }
+        if (!cancelled) setMockupSupported(supported);
+      } catch {/* ignore */}
+    }
+    loadFeatured();
+    return () => { cancelled = true; };
+  }, []);
 
   async function loadCategoryProducts(categoryId: string) {
     setLoading(true);

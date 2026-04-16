@@ -31,7 +31,7 @@ function priceToCents(price: string): number {
 const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const state = (location.state || {}) as CheckoutLocationState;
   const { orderItem, treatPriceId } = state;
 

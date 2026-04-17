@@ -179,7 +179,7 @@ serve(async (req) => {
           const data = json?.data || [];
           // Each entry has { placement, technique, mockup_styles: [...] }
           const placements: string[] = Array.isArray(data)
-            ? data.map((d: { placement?: string }) => d.placement).filter(Boolean)
+            ? [...new Set(data.map((d: { placement?: string }) => d.placement).filter(Boolean))]
             : [];
           const out = {
             data,
@@ -237,12 +237,19 @@ serve(async (req) => {
           throw new Error("catalog_product_id, catalog_variant_id, placement, image_url are required");
         }
 
+        const parsedProductId = Number(catalog_product_id);
+        const parsedVariantId = Number(catalog_variant_id);
+        if (!Number.isInteger(parsedProductId) || !Number.isInteger(parsedVariantId)) {
+          throw new Error("catalog_product_id and catalog_variant_id must be valid integers");
+        }
+
         const taskBody = {
-          catalog_product_id: Number(catalog_product_id),
+          catalog_product_id: parsedProductId,
           format,
           products: [{
             source: "catalog",
-            catalog_variant_id: Number(catalog_variant_id),
+            catalog_product_id: parsedProductId,
+            catalog_variant_id: parsedVariantId,
             placements: [{
               placement,
               technique: "digital",

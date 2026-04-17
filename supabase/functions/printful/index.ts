@@ -253,8 +253,11 @@ serve(async (req) => {
             placements: [{
               placement,
               technique: "digital",
-              image_url,
-              source: "url",
+              layers: [{
+                type: "file",
+                image_url,
+                source: "url",
+              }],
             }],
           }],
         };

@@ -165,7 +165,7 @@ async function generateBriefWithLLM(args: {
   styleId: string;
   originalImageUrl: string;
 }): Promise<Record<string, unknown>> {
-  const director = STYLE_DIRECTORS[args.styleId] || STYLE_DIRECTORS["watercolor"];
+  const director = STYLE_DIRECTORS[args.styleId] || STYLE_DIRECTORS["hyperrealistic"];
 
   const systemPrompt = `You are an expert art director that produces structured creative briefs for an image-generation model.
 

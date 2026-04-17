@@ -6,7 +6,7 @@ import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
 import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { FreeShippingBadge } from "@/components/FreeShippingBadge";
+
 
 // Module-level cache so we don't refetch the same product detail twice in a session.
 const startingPriceCache = new Map<number, string>();
@@ -188,10 +188,6 @@ const Gallery = () => {
             Browse our full catalog of premium products - every item can be customized with your AI-generated pet art.
           </p>
 
-          <div className="mt-6 flex justify-center">
-            <FreeShippingBadge />
-          </div>
-
           {/* Category filters */}
           <div className="mt-10 flex flex-wrap justify-center gap-2">
             {UI_CATEGORIES.map((cat) => {
@@ -216,56 +212,59 @@ const Gallery = () => {
         </div>
       </section>
 
-      {/* Live Mockup carousel - only products that support real Printful mockups */}
-      <section className="pt-12 md:pt-16">
+      {/* Live Mockup carousel - compact callout */}
+      <section className="pt-6 md:pt-8 pb-2">
         <div className="container">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
-              See your art on these
-            </h2>
-          </div>
-          <p className="text-sm text-muted-foreground mb-5">
-            These products generate a real photo-mockup of your AI pet art - perfect for previewing.
-          </p>
-          {mockupLoading && mockupSupported.length === 0 ? (
-            <div className="flex gap-4 overflow-x-auto pb-2 px-0 py-0">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-44">
-                  <div className="aspect-square rounded-xl bg-muted animate-pulse" />
-                  <div className="h-3 bg-muted rounded w-3/4 mt-2 animate-pulse" />
-                </div>
-              ))}
+          <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur px-4 py-3">
+            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                <h2 className="font-heading text-xs font-semibold uppercase tracking-wider text-foreground">
+                  See your art on these
+                </h2>
+                <span className="hidden sm:inline text-xs text-muted-foreground truncate">
+                  · live photo-mockup preview
+                </span>
+              </div>
             </div>
-          ) : mockupSupported.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No mockup-ready products right now.</p>
-          ) : (
-            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory mx-[4px] px-[6px]">
-              {mockupSupported.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/product/${p.id}`}
-                  className="flex-shrink-0 w-44 snap-start group py-0 pt-[10px] px-[4px]"
-                >
-                  <div className="aspect-square rounded-xl overflow-hidden glass-card card-lift ring-gradient-hover">
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110 px-[12px]"
-                      loading="lazy"
-                    />
+            {mockupLoading && mockupSupported.length === 0 ? (
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-28">
+                    <div className="aspect-square rounded-lg bg-muted animate-pulse" />
                   </div>
-                  <p className="mt-2 text-xs font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                    {p.title}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            ) : mockupSupported.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No mockup-ready products right now.</p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory">
+                {mockupSupported.map((p) => (
+                  <Link
+                    key={p.id}
+                    to={`/product/${p.id}`}
+                    className="flex-shrink-0 w-28 snap-start group"
+                  >
+                    <div className="aspect-square rounded-lg overflow-hidden glass-card card-lift ring-gradient-hover">
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[11px] font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                      {p.title}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section ref={gridRef} className="py-12 md:py-16">
+      <section ref={gridRef} className="pt-4 pb-12 md:pt-6 md:pb-16">
         <div className="container">
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

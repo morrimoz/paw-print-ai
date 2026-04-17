@@ -2,6 +2,7 @@ import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Upload, Palette, ShoppingBag, Sparkles, Star, ArrowRight, Gift } from "lucide-react";
+import { FreeShippingBadge } from "@/components/FreeShippingBadge";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -79,12 +80,15 @@ const Index = () => {
         className="relative overflow-hidden bg-aurora grain-overlay min-h-[100vh] flex items-center"
       >
         <div className="container relative z-10 py-16 md:py-20 md:pt-4 flex flex-col items-center text-center gap-8">
-          {/* Merch bonus promo strip - above the hero image */}
-          <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 backdrop-blur">
-            <Gift className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">
-              Bonus: order any merch and we'll add <span className="text-primary font-bold">10 free treats</span> to your account.
-            </span>
+          {/* Promo strips - above the hero image */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 backdrop-blur">
+              <Gift className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
+                Bonus: order any merch and we'll add <span className="text-primary font-bold">10 free treats</span> to your account.
+              </span>
+            </div>
+            <FreeShippingBadge />
           </div>
 
           <div

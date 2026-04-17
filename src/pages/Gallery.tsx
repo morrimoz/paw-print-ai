@@ -34,6 +34,7 @@ const Gallery = () => {
   const [error, setError] = useState<string | null>(null);
   const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>([]);
   const [mockupLoading, setMockupLoading] = useState(true);
+  const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
   const gridRef = useScrollReveal<HTMLDivElement>(".reveal");
 
   // Build a horizontal carousel of products that support live Printful mockups,

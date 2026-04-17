@@ -253,7 +253,6 @@ const ProductPage = () => {
           <div className="space-y-4">
             <MockupPreview
               artworkUrl={artworkUrl || ""}
-              productImage={selectedVariant?.image || product.image}
               productTitle={product.title}
               mockupUrl={mockupUrl}
               loading={mockupLoading}

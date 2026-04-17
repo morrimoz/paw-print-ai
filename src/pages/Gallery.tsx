@@ -196,7 +196,7 @@ const Gallery = () => {
             These products generate a real photo-mockup of your AI pet art - perfect for previewing.
           </p>
           {mockupLoading && mockupSupported.length === 0 ? (
-            <div className="flex gap-4 overflow-x-auto pb-2">
+            <div className="flex gap-4 overflow-x-auto pb-2 px-0 py-0">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex-shrink-0 w-44">
                   <div className="aspect-square rounded-xl bg-muted animate-pulse" />
@@ -207,18 +207,18 @@ const Gallery = () => {
           ) : mockupSupported.length === 0 ? (
             <p className="text-sm text-muted-foreground">No mockup-ready products right now.</p>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory">
+            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory mx-[4px] px-[6px]">
               {mockupSupported.map((p) => (
                 <Link
                   key={p.id}
                   to={`/product/${p.id}`}
-                  className="flex-shrink-0 w-44 snap-start group"
+                  className="flex-shrink-0 w-44 snap-start group py-0 pt-[10px] px-[4px]"
                 >
                   <div className="aspect-square rounded-xl overflow-hidden glass-card card-lift ring-gradient-hover">
                     <img
                       src={p.image}
                       alt={p.title}
-                      className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
+                      className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110 px-[12px]"
                       loading="lazy"
                     />
                   </div>

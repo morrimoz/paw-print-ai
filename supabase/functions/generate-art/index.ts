@@ -18,7 +18,7 @@ const STYLE_DIRECTORS: Record<string, { label: string; direction: string }> = {
     direction:
       "high-contrast monochrome fine-art photography, deep blacks, luminous whites, cinematic Rembrandt lighting, references: Peter Lindbergh, Sebastião Salgado, Annie Leibovitz BW.",
   },
-  "pixar": {
+  pixar: {
     label: "Pixar Movie",
     direction:
       "Pixar/Disney 3D animated film still, soft subsurface scattering on fur, expressive eyes, slightly stylized proportions while preserving the real pet's breed/markings; references: Pixar Up, Coco, DreamWorks character design; warm cinematic three-point lighting.",
@@ -28,22 +28,22 @@ const STYLE_DIRECTORS: Record<string, { label: string; direction: string }> = {
     direction:
       "classical oil-on-canvas portrait, visible brushwork, glazed underpainting, chiaroscuro depth, regal dark background; references: Rembrandt, Vermeer, Velázquez, Titian; candlelit warm 3000K lighting.",
   },
-  "watercolor": {
+  watercolor: {
     label: "Watercolor Art",
     direction:
       "loose watercolor on cold-press paper, visible paper texture, soft wet-on-wet bleeds, delicate ink linework accents, breathable white space; references: Marc Allante, Endre Penovác animal watercolors; soft diffuse natural daylight.",
   },
-  "humorous": {
+  humorous: {
     label: "Humorous Scenes",
     direction:
       "playful illustrated comedy scene, exaggerated expression, witty visual gag, polished digital illustration with cinematic lighting; references: New Yorker pet cartoons, Pixar shorts comedic framing.",
   },
-  "cartoon": {
+  cartoon: {
     label: "Cartoon",
     direction:
       "modern flat cartoon illustration, bold clean line art, simplified shapes that still preserve the pet's exact markings/breed/colors, vibrant flat fills with subtle cell-shading; references: modern sticker pack illustration, Cartoon Network character design.",
   },
-  "hyperrealistic": {
+  hyperrealistic: {
     label: "Hyperrealistic Photography",
     direction:
       "ultra-photorealistic professional pet portrait photography, razor-sharp focus on the eyes, every individual fur strand visible, natural skin and nose texture, shallow depth of field with creamy bokeh, shot on a Canon EOS R5 with an 85mm f/1.4 prime lens, soft cinematic key light with subtle rim light, color-graded for editorial polish; references: National Geographic animal portraiture, Tim Flach pet photography.",
@@ -177,7 +177,7 @@ You will receive:
 Your job:
 1. Carefully look at the uploaded image and EXTRACT the pet's identity: species, breed, fur color and pattern, ear shape, eye color, snout, body proportions, distinctive markings.
 2. Treat the user_prompt as the CORE NARRATIVE - the scene, action, costuming, props, setting. Do NOT ignore it. Do NOT water it down.
-3. Treat the style as full ART DIRECTION (medium, lighting, references) - NOT as a filter on top of the photo.
+3. Treat the style as full ART DIRECTION (medium, lighting, references) - NOT as a filter on top of the photo. If a style is not specified, determine this from the user_prompt if possible and if not fallback to hyperrealistic.
 4. Re-imagine the SAME pet from the photo inside the new scene and rendering style. Preserve identity strictly.
 5. Fill ALL required fields of the brief with vivid, visually specific language. Avoid vague wording.
 6. The "edit.instruction" field MUST clearly tell the image model: use the uploaded photo ONLY as identity reference for the pet (breed/markings/fur/eyes/proportions), do NOT copy its background/lighting/pose, re-imagine the pet inside the new scene.
@@ -328,7 +328,10 @@ serve(async (req) => {
 
     // Verify user
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data: { user }, error: authError } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
+    const {
+      data: { user },
+      error: authError,
+    } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) throw new Error("Unauthorized");
 
     const { original_image_url, style, prompt: userPromptRaw } = await req.json();
@@ -349,11 +352,7 @@ serve(async (req) => {
     console.log("Style resolution:", { incomingStyle, resolvedStyle });
 
     // Check credits
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("credits_balance")
-      .eq("id", user.id)
-      .single();
+    const { data: profile } = await supabase.from("profiles").select("credits_balance").eq("id", user.id).single();
 
     if (!profile || profile.credits_balance < 1) {
       return new Response(JSON.stringify({ error: "Insufficient credits" }), {

@@ -127,7 +127,7 @@ const CreateArt = () => {
       const { data, error } = await supabase.functions.invoke("generate-art", {
         body: {
           original_image_url: originalUrl,
-          style: selectedStyle || "watercolor",
+          style: selectedStyle || "auto",
           prompt: prompt || undefined,
         },
       });

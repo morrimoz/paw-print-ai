@@ -43,7 +43,35 @@ const STYLE_DIRECTORS: Record<string, { label: string; direction: string }> = {
     direction:
       "modern flat cartoon illustration, bold clean line art, simplified shapes that still preserve the pet's exact markings/breed/colors, vibrant flat fills with subtle cell-shading; references: modern sticker pack illustration, Cartoon Network character design.",
   },
+  "hyperrealistic": {
+    label: "Hyperrealistic Photography",
+    direction:
+      "ultra-photorealistic professional pet portrait photography, razor-sharp focus on the eyes, every individual fur strand visible, natural skin and nose texture, shallow depth of field with creamy bokeh, shot on a Canon EOS R5 with an 85mm f/1.4 prime lens, soft cinematic key light with subtle rim light, color-graded for editorial polish; references: National Geographic animal portraiture, Tim Flach pet photography.",
+  },
 };
+
+/**
+ * Lightweight keyword-based style inference. If the user did NOT pick a style
+ * in the UI, we look at their prompt for obvious style cues (e.g. "watercolor",
+ * "oil painting", "cartoon"). If nothing matches, we fall back to
+ * hyperrealistic so the user gets an impressive default result.
+ */
+function inferStyleFromPrompt(userPrompt: string): string {
+  const p = (userPrompt || "").toLowerCase();
+  const rules: Array<{ id: string; patterns: RegExp[] }> = [
+    { id: "watercolor", patterns: [/water\s?colou?r/, /aquarelle/] },
+    { id: "renaissance-oil", patterns: [/renaissance/, /oil\s?paint/, /baroque/, /classical portrait/] },
+    { id: "pixar", patterns: [/pixar/, /disney/, /3d animat/, /dreamworks/] },
+    { id: "cartoon", patterns: [/cartoon/, /comic/, /anime/, /manga/, /sticker/] },
+    { id: "dramatic-bw", patterns: [/black\s?and\s?white/, /\bb&w\b/, /monochrome/, /noir/] },
+    { id: "humorous", patterns: [/funny/, /humor/, /comedic/, /joke/, /silly/] },
+    { id: "hyperrealistic", patterns: [/hyper\s?real/, /photoreal/, /photograph/, /realistic photo/] },
+  ];
+  for (const r of rules) {
+    if (r.patterns.some((re) => re.test(p))) return r.id;
+  }
+  return "hyperrealistic";
+}
 
 function nowUtcLabel(): string {
   return new Date().toUTCString().replace("GMT", "UTC");
@@ -137,7 +165,7 @@ async function generateBriefWithLLM(args: {
   styleId: string;
   originalImageUrl: string;
 }): Promise<Record<string, unknown>> {
-  const director = STYLE_DIRECTORS[args.styleId] || STYLE_DIRECTORS["watercolor"];
+  const director = STYLE_DIRECTORS[args.styleId] || STYLE_DIRECTORS["hyperrealistic"];
 
   const systemPrompt = `You are an expert art director that produces structured creative briefs for an image-generation model.
 
@@ -305,9 +333,20 @@ serve(async (req) => {
 
     const { original_image_url, style, prompt: userPromptRaw } = await req.json();
     if (!original_image_url) throw new Error("Missing required field: original_image_url");
-    if (!style) throw new Error("Missing required field: style");
     const user_prompt = (userPromptRaw || "").toString().trim();
     if (!user_prompt) throw new Error("Missing required field: prompt (user_prompt)");
+
+    // Resolve style:
+    //  - If the user explicitly picked a known style in the UI, use it as-is.
+    //  - Otherwise ("auto" / empty / unknown), inspect the user prompt for
+    //    style cues. If none, fall back to "hyperrealistic" so the default
+    //    output is impressive and photo-grade.
+    const incomingStyle = (style || "").toString().trim().toLowerCase();
+    const resolvedStyle =
+      incomingStyle && incomingStyle !== "auto" && STYLE_DIRECTORS[incomingStyle]
+        ? incomingStyle
+        : inferStyleFromPrompt(user_prompt);
+    console.log("Style resolution:", { incomingStyle, resolvedStyle });
 
     // Check credits
     const { data: profile } = await supabase
@@ -327,7 +366,7 @@ serve(async (req) => {
     const brief = await generateBriefWithLLM({
       apiKey: lovableApiKey,
       userPrompt: user_prompt,
-      styleId: style,
+      styleId: resolvedStyle,
       originalImageUrl: original_image_url,
     });
     console.log("Generated Brief:", JSON.stringify(brief));
@@ -387,7 +426,7 @@ serve(async (req) => {
     }
 
     // Persist artwork
-    const promptForRecord = `${STYLE_DIRECTORS[style]?.label || style}: ${user_prompt}`;
+    const promptForRecord = `${STYLE_DIRECTORS[resolvedStyle]?.label || resolvedStyle}: ${user_prompt}`;
 
     const { data: artwork, error: artworkError } = await supabase
       .from("artworks")
@@ -395,7 +434,7 @@ serve(async (req) => {
         user_id: user.id,
         original_image_url,
         generated_image_url,
-        style,
+        style: resolvedStyle,
         prompt: promptForRecord,
         credits_consumed: 1,
       })

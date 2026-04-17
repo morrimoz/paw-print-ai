@@ -2,11 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MockupPreview } from "./MockupPreview";
 import { getDisplayPrice, getMarkedUpPrice } from "@/utils/pricing";
-import {
-  fetchProductDetail,
-  fetchPlacementsForVariant,
-  generateMockup,
-} from "@/services/printful";
+import { fetchProductDetail, fetchPlacementsForVariant, generateMockup } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,8 +40,12 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
         if (colors.length) setSelectedColor(colors[0]);
       })
       .catch((err) => console.error("Failed to load product details:", err))
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [product.id]);
 
   const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
@@ -57,9 +57,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
 
   function getSelectedVariant(): PrintfulVariant | undefined {
     return variants.find(
-      (v) =>
-        (!selectedSize || v.size === selectedSize) &&
-        (!selectedColor || v.color === selectedColor)
+      (v) => (!selectedSize || v.size === selectedSize) && (!selectedColor || v.color === selectedColor),
     );
   }
 
@@ -67,17 +65,29 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
 
   // Load placements available for the selected variant.
   useEffect(() => {
-    if (!selectedVariant) return;
+    if (!selectedVariant) {
+      setPlacements([]);
+      setSelectedPlacement("");
+      return;
+    }
+
     let cancelled = false;
     fetchPlacementsForVariant(product.id, selectedVariant.id)
       .then((p) => {
         if (cancelled) return;
         const uniquePlacements = [...new Set(p)];
         setPlacements(uniquePlacements);
-        setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : (uniquePlacements[0] || "")));
+        setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : uniquePlacements[0] || ""));
       })
-      .catch(() => { if (!cancelled) setPlacements([]); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) {
+          setPlacements([]);
+          setSelectedPlacement("");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [product.id, selectedVariant?.id]);
 
   // Re-generate the mockup whenever variant or placement changes.
@@ -121,9 +131,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     };
   }, [product.id, artworkUrl, selectedVariant?.id, selectedPlacement]);
 
-  const displayPrice = selectedVariant
-    ? getDisplayPrice(selectedVariant.price)
-    : getDisplayPrice("15.00");
+  const displayPrice = selectedVariant ? getDisplayPrice(selectedVariant.price) : getDisplayPrice("15.00");
 
   function handleAddToOrder() {
     if (!selectedVariant) return;
@@ -247,19 +255,11 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
             onClick={handleAddToOrder}
             disabled={!selectedVariant || adding}
           >
-            {adding ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ShoppingCart className="h-4 w-4" />
-            )}
+            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
             Add to Order - {displayPrice}
           </Button>
 
-          {!selectedVariant && (
-            <p className="text-xs text-destructive">
-              Please select a valid size/color combination
-            </p>
-          )}
+          {!selectedVariant && <p className="text-xs text-destructive">Please select a valid size/color combination</p>}
 
           {product.description && (
             <div className="pt-4 border-t border-border">

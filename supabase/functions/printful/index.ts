@@ -241,8 +241,14 @@ serve(async (req) => {
           catalog_product_id: Number(catalog_product_id),
           format,
           products: [{
+            source: "catalog",
             catalog_variant_id: Number(catalog_variant_id),
-            placements: [{ placement, image_url }],
+            placements: [{
+              placement,
+              technique: "digital",
+              image_url,
+              source: "url",
+            }],
           }],
         };
 

@@ -116,7 +116,19 @@ export interface PrintfulProductOption {
   type?: string;
   title?: string;
   techniques?: string[];
-  values?: Array<string | PrintfulProductOptionValue>;
+  values?: Array<string | PrintfulProductOptionValue> | Record<string, string | boolean>;
+}
+
+function getOptionValues(option: PrintfulProductOption): Array<string | PrintfulProductOptionValue> {
+  if (Array.isArray(option.values)) return option.values;
+  if (option.values && typeof option.values === "object") {
+    return Object.entries(option.values).map(([key, label]) => ({
+      key,
+      value: key,
+      title: typeof label === "string" ? label : String(label),
+    }));
+  }
+  return [];
 }
 
 export interface PrintfulCatalogProductDesignSpec {
@@ -367,7 +379,7 @@ export function getDefaultProductOptionSelections(
       continue;
     }
 
-    const values = Array.isArray(option.values) ? option.values : [];
+    const values = getOptionValues(option);
 
     if (option.name === "stitch_color") {
       const autoValue = values.find((value) => {

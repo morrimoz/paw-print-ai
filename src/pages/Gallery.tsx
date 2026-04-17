@@ -103,7 +103,6 @@ const Gallery = () => {
   }, [activeCategory]);
 
   const products = productsByCat[activeCategory] || [];
-  const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
 
   // Lazily fetch real "from" prices for the currently displayed products.
   useEffect(() => {

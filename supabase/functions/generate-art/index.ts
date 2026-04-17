@@ -333,9 +333,20 @@ serve(async (req) => {
 
     const { original_image_url, style, prompt: userPromptRaw } = await req.json();
     if (!original_image_url) throw new Error("Missing required field: original_image_url");
-    if (!style) throw new Error("Missing required field: style");
     const user_prompt = (userPromptRaw || "").toString().trim();
     if (!user_prompt) throw new Error("Missing required field: prompt (user_prompt)");
+
+    // Resolve style:
+    //  - If the user explicitly picked a known style in the UI, use it as-is.
+    //  - Otherwise ("auto" / empty / unknown), inspect the user prompt for
+    //    style cues. If none, fall back to "hyperrealistic" so the default
+    //    output is impressive and photo-grade.
+    const incomingStyle = (style || "").toString().trim().toLowerCase();
+    const resolvedStyle =
+      incomingStyle && incomingStyle !== "auto" && STYLE_DIRECTORS[incomingStyle]
+        ? incomingStyle
+        : inferStyleFromPrompt(user_prompt);
+    console.log("Style resolution:", { incomingStyle, resolvedStyle });
 
     // Check credits
     const { data: profile } = await supabase
@@ -355,7 +366,7 @@ serve(async (req) => {
     const brief = await generateBriefWithLLM({
       apiKey: lovableApiKey,
       userPrompt: user_prompt,
-      styleId: style,
+      styleId: resolvedStyle,
       originalImageUrl: original_image_url,
     });
     console.log("Generated Brief:", JSON.stringify(brief));

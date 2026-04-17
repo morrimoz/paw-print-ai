@@ -1,14 +1,16 @@
 import { PublicLayout } from "@/components/PublicLayout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { fetchProducts, checkMockupSupport, fetchProductDetail } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
-
-// In-memory cache so we don't refetch the same product detail twice in a session.
-const startingPriceCache = new Map<number, string>();
 import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+
+// Module-level cache so we don't refetch the same product detail twice in a session.
+const startingPriceCache = new Map<number, string>();
+// Module-level cache for mockup-support probes (very rate-limit-sensitive).
+const mockupSupportedCache: { products: PrintfulProduct[] } = { products: [] };
 
 interface UICategory {
   id: string;
@@ -17,14 +19,14 @@ interface UICategory {
   printfulCategoryIds: number[];
 }
 
-// Curated, customer-friendly category groupings backed by real Printful category IDs
+// Order: Accessories, Clothing, Drinkware, Home & Living, Wall Art.
 const UI_CATEGORIES: UICategory[] = [
-  { id: "all", label: "All", icon: Sparkles, printfulCategoryIds: [21, 24, 6, 7, 112, 16, 15] },
-  { id: "wall-art", label: "Wall Art", icon: Frame, printfulCategoryIds: [21] },
+  { id: "all", label: "All", icon: Sparkles, printfulCategoryIds: [16, 15, 6, 7, 112, 5, 21] },
+  { id: "accessories", label: "Accessories", icon: Backpack, printfulCategoryIds: [16, 15] },
   { id: "clothing", label: "Clothing", icon: Shirt, printfulCategoryIds: [6, 7] },
   { id: "drinkware", label: "Drinkware", icon: Coffee, printfulCategoryIds: [112] },
-  { id: "accessories", label: "Accessories", icon: Backpack, printfulCategoryIds: [16, 15] },
   { id: "home", label: "Home & Living", icon: Home, printfulCategoryIds: [5] },
+  { id: "wall-art", label: "Wall Art", icon: Frame, printfulCategoryIds: [21] },
 ];
 
 const Gallery = () => {
@@ -32,44 +34,51 @@ const Gallery = () => {
   const [productsByCat, setProductsByCat] = useState<Record<string, PrintfulProduct[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>([]);
-  const [mockupLoading, setMockupLoading] = useState(true);
+  const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>(mockupSupportedCache.products);
+  const [mockupLoading, setMockupLoading] = useState(mockupSupportedCache.products.length === 0);
   const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
+  const [visibleCount, setVisibleCount] = useState(12);
   const gridRef = useScrollReveal<HTMLDivElement>(".reveal");
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Build a horizontal carousel of products that support live Printful V2 mockups.
-  // We probe candidates 3 at a time so we don't hit Printful's 429 rate limit.
+  // Build the live-mockup carousel. Heavily rate-limit-aware:
+  // probe sequentially with delays, and cache results module-wide.
   useEffect(() => {
+    if (mockupSupportedCache.products.length > 0) return;
     let cancelled = false;
     (async () => {
       setMockupLoading(true);
       try {
         const candidates: PrintfulProduct[] = [];
-        for (const catId of [21, 24, 112, 16]) {
+        for (const catId of [21, 112, 16, 15]) {
           try {
             const prods = await fetchProducts(catId);
-            candidates.push(...prods.filter((p) => !p.is_discontinued).slice(0, 6));
+            candidates.push(...prods.filter((p) => !p.is_discontinued).slice(0, 4));
           } catch { /* skip */ }
         }
         const seen = new Set<number>();
         const unique = candidates.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
 
-        // Probe in batches of 3 — kind to Printful's rate limits, fast enough for UX.
+        // Sequential probing with a short delay — mockup-styles is per-product
+        // and can rate-limit us hard if we burst.
         const supported: PrintfulProduct[] = [];
-        const batchSize = 3;
-        for (let i = 0; i < unique.length && supported.length < 12; i += batchSize) {
+        for (const p of unique) {
           if (cancelled) return;
-          const batch = unique.slice(i, i + batchSize);
-          const results = await Promise.all(
-            batch.map(async (p) => ({ p, ok: await checkMockupSupport(p.id).catch(() => false) }))
-          );
-          for (const { p, ok } of results) {
-            if (ok && supported.length < 12) supported.push(p);
-          }
-          // Tiny pause between batches to be extra polite.
-          await new Promise((r) => setTimeout(r, 250));
+          if (supported.length >= 10) break;
+          try {
+            const ok = await checkMockupSupport(p.id);
+            if (ok) {
+              supported.push(p);
+              // Update progressively so the user sees something fast.
+              if (!cancelled) setMockupSupported([...supported]);
+            }
+          } catch { /* skip */ }
+          await new Promise((r) => setTimeout(r, 350));
         }
-        if (!cancelled) setMockupSupported(supported);
+        if (!cancelled) {
+          mockupSupportedCache.products = supported;
+          setMockupSupported(supported);
+        }
       } finally {
         if (!cancelled) setMockupLoading(false);
       }
@@ -79,6 +88,7 @@ const Gallery = () => {
 
   useEffect(() => {
     let cancelled = false;
+    setVisibleCount(12);
     async function load() {
       if (productsByCat[activeCategory]) return;
       setLoading(true);
@@ -113,50 +123,58 @@ const Gallery = () => {
   }, [activeCategory]);
 
   const products = productsByCat[activeCategory] || [];
+  const visibleProducts = products.slice(0, visibleCount);
 
-  // Lazily fetch real "from" prices for the currently displayed products.
+  // Lazy-load more as the user scrolls.
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const obs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount((c) => Math.min(c + 12, products.length));
+      }
+    }, { rootMargin: "400px" });
+    obs.observe(sentinelRef.current);
+    return () => obs.disconnect();
+  }, [products.length]);
+
+  // Lazily fetch real "from" prices ONLY for currently visible products.
+  // Throttled and dedup'd to keep us well under Printful's rate limit.
   useEffect(() => {
     let cancelled = false;
-    const toFetch = products.filter((p) => !startingPriceCache.has(p.id));
-    if (toFetch.length === 0) {
-      // hydrate from cache
-      const fromCache: Record<number, string> = {};
-      products.forEach((p) => {
-        const v = startingPriceCache.get(p.id);
-        if (v) fromCache[p.id] = v;
-      });
-      if (Object.keys(fromCache).length) setStartingPrices((s) => ({ ...s, ...fromCache }));
-      return;
+    const toFetch = visibleProducts.filter((p) => !startingPriceCache.has(p.id));
+    // Hydrate from cache first.
+    const fromCache: Record<number, string> = {};
+    visibleProducts.forEach((p) => {
+      const v = startingPriceCache.get(p.id);
+      if (v) fromCache[p.id] = v;
+    });
+    if (Object.keys(fromCache).length) {
+      setStartingPrices((s) => ({ ...s, ...fromCache }));
     }
+    if (toFetch.length === 0) return;
+
     (async () => {
-      // Fetch in small batches to avoid hammering the API
-      const batchSize = 4;
-      for (let i = 0; i < toFetch.length; i += batchSize) {
+      // Sequential fetch with a small delay to be polite.
+      for (const p of toFetch) {
         if (cancelled) return;
-        const batch = toFetch.slice(i, i + batchSize);
-        const results = await Promise.all(
-          batch.map(async (p) => {
-            try {
-              const detail = await fetchProductDetail(p.id);
-              const prices = (detail?.variants || []).map((v) => v.price).filter(Boolean);
-              const display = getStartingPrice(prices.length ? prices : ["15.00"]);
-              startingPriceCache.set(p.id, display);
-              return [p.id, display] as const;
-            } catch {
-              return [p.id, getStartingPrice(["15.00"])] as const;
-            }
-          })
-        );
-        if (cancelled) return;
-        setStartingPrices((s) => {
-          const next = { ...s };
-          results.forEach(([id, price]) => { next[id] = price; });
-          return next;
-        });
+        try {
+          const detail = await fetchProductDetail(p.id);
+          const prices = (detail?.variants || []).map((v) => v.price).filter(Boolean);
+          const display = getStartingPrice(prices.length ? prices : ["15.00"]);
+          startingPriceCache.set(p.id, display);
+          if (!cancelled) {
+            setStartingPrices((s) => ({ ...s, [p.id]: display }));
+          }
+        } catch {
+          const fallback = getStartingPrice(["15.00"]);
+          startingPriceCache.set(p.id, fallback);
+          if (!cancelled) setStartingPrices((s) => ({ ...s, [p.id]: fallback }));
+        }
+        await new Promise((r) => setTimeout(r, 200));
       }
     })();
     return () => { cancelled = true; };
-  }, [products]);
+  }, [visibleProducts.length, activeCategory]);
 
   return (
     <PublicLayout>
@@ -272,38 +290,45 @@ const Gallery = () => {
           )}
 
           {!loading && products.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/product/${p.id}`}
-                  className="reveal group rounded-2xl glass-card overflow-hidden card-lift ring-gradient-hover transition-all duration-300 cursor-pointer block"
-                >
-                  <div className="aspect-square bg-muted relative overflow-hidden">
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-heading text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                      {p.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {p.brand && `${p.brand} · `}
-                      {p.variant_count} variants
-                    </p>
-                    <p className="text-sm font-bold text-primary mt-2">
-                      {startingPrices[p.id]
-                        ? <>From {startingPrices[p.id]}</>
-                        : <span className="inline-block h-4 w-16 bg-muted rounded animate-pulse" />}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {visibleProducts.map((p) => (
+                  <Link
+                    key={p.id}
+                    to={`/product/${p.id}`}
+                    className="reveal group rounded-2xl glass-card overflow-hidden card-lift ring-gradient-hover transition-all duration-300 cursor-pointer block"
+                  >
+                    <div className="aspect-square bg-muted relative overflow-hidden">
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-heading text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                        {p.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {p.brand && `${p.brand} · `}
+                        {p.variant_count} variants
+                      </p>
+                      <p className="text-sm font-bold text-primary mt-2">
+                        {startingPrices[p.id]
+                          ? <>From {startingPrices[p.id]}</>
+                          : <span className="inline-block h-4 w-16 bg-muted rounded animate-pulse" />}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              {visibleCount < products.length && (
+                <div ref={sentinelRef} className="flex justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

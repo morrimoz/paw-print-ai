@@ -27,6 +27,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
   const [selectedPlacement, setSelectedPlacement] = useState<string>("");
   const [mockupUrl, setMockupUrl] = useState<string | null>(null);
   const [mockupLoading, setMockupLoading] = useState(false);
+  const [mockupAttempted, setMockupAttempted] = useState(false);
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -84,6 +85,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     let cancelled = false;
     setMockupUrl(null);
     setMockupLoading(true);
+    setMockupAttempted(false);
     (async () => {
       try {
         const { mockupUrl: url } = await generateMockup({
@@ -96,7 +98,10 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       } catch {
         // fallback handled by MockupPreview
       } finally {
-        if (!cancelled) setMockupLoading(false);
+        if (!cancelled) {
+          setMockupLoading(false);
+          setMockupAttempted(true);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -147,6 +152,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           productTitle={product.title}
           mockupUrl={mockupUrl}
           loading={mockupLoading}
+          unavailable={mockupAttempted && !mockupUrl}
         />
 
         <div className="space-y-6">

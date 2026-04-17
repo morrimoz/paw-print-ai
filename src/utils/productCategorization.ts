@@ -9,13 +9,14 @@ export interface UICategory {
   printfulCategoryIds: number[];
 }
 
-// Map our UI categories to actual Printful category IDs (from /categories API)
+// Map our UI categories to actual Printful category IDs (from /categories API).
+// Order matters: this is the order shown in the UI.
 export const UI_CATEGORIES: UICategory[] = [
   {
-    id: "wall-art",
-    label: "Wall Art",
-    icon: Frame,
-    printfulCategoryIds: [21], // "Wall art" subcategory under Home & Living
+    id: "accessories",
+    label: "Accessories",
+    icon: Backpack,
+    printfulCategoryIds: [16, 15], // Bags, All hats
   },
   {
     id: "clothing",
@@ -30,21 +31,21 @@ export const UI_CATEGORIES: UICategory[] = [
     printfulCategoryIds: [112], // "Drinkware & coasters" under Home & Living
   },
   {
-    id: "accessories",
-    label: "Accessories",
-    icon: Backpack,
-    printfulCategoryIds: [16, 15], // Bags, All hats
-  },
-  {
     id: "home-living",
     label: "Home & Living",
     icon: Home,
     printfulCategoryIds: [5], // Home & Living parent
   },
+  {
+    id: "wall-art",
+    label: "Wall Art",
+    icon: Frame,
+    printfulCategoryIds: [21], // "Wall art" under Home & Living
+  },
 ];
 
 /**
- * Categorize a product by its title / type for fallback assignment
+ * Categorize a product by its title / type for fallback assignment.
  */
 export function categorizeProduct(productTitle: string, productType: string): string {
   const title = productTitle.toLowerCase();

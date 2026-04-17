@@ -10,6 +10,7 @@ import {
 } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { MockupPreview } from "@/components/MockupPreview";
+import { PeopleAlsoBought } from "@/components/PeopleAlsoBought";
 import { getDisplayPrice, getMarkedUpPrice } from "@/utils/pricing";
 import { ArrowLeft, ShoppingCart, Upload, Sparkles, ImagePlus, Loader2, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +48,7 @@ const ProductPage = () => {
   const [artworkUrl, setArtworkUrl] = useState<string | null>(null);
   const [mockupUrl, setMockupUrl] = useState<string | null>(null);
   const [mockupLoading, setMockupLoading] = useState(false);
+  const [mockupAttempted, setMockupAttempted] = useState(false);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
@@ -250,6 +252,7 @@ const ProductPage = () => {
               productTitle={product.title}
               mockupUrl={mockupUrl}
               loading={mockupLoading}
+              unavailable={mockupAttempted && !mockupUrl}
             />
             {!artworkUrl && (
               <p className="text-xs text-center text-muted-foreground">
@@ -386,6 +389,8 @@ const ProductPage = () => {
             )}
           </div>
         </div>
+
+        <PeopleAlsoBought excludeId={product.id} />
       </div>
 
       {/* Artwork picker dialog */}

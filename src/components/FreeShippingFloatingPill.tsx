@@ -33,8 +33,10 @@ export function FreeShippingFloatingPill() {
   return (
     <div
       className={cn(
-        "fixed top-20 right-4 z-50 max-w-[calc(100vw-2rem)]",
-        "animate-in fade-in slide-in-from-top-4 duration-500",
+        // Mobile: bottom-right. Desktop (md+): top-right.
+        "fixed right-4 z-50 max-w-[calc(100vw-2rem)]",
+        "bottom-4 md:bottom-auto md:top-20",
+        "animate-in fade-in slide-in-from-bottom-4 md:slide-in-from-top-4 duration-500",
       )}
       role="status"
       aria-live="polite"

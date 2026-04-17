@@ -114,7 +114,12 @@ export interface MockupStyleGroup {
   display_name?: string;
   print_area_width?: number;
   print_area_height?: number;
-  mockup_styles?: { id: number; view_name: string; category_name: string }[];
+  mockup_styles?: {
+    id: number;
+    view_name?: string;
+    category_name?: string;
+    restricted_to_variants?: number[];
+  }[];
 }
 
 export interface MockupStylesResponse {
@@ -230,14 +235,45 @@ export async function checkMockupSupport(productId: number): Promise<boolean> {
 /** Distinct placements available for a product (variant-aware via mockup-styles). */
 export async function fetchPlacementsForVariant(
   productId: number,
-  _variantId: number
+  variantId: number
 ): Promise<string[]> {
-  // mockup-styles already gives us the canonical list of placements that support
-  // mockup generation for this product. It's variant-agnostic in V2 unless
-  // restricted_to_variants is set on individual styles — for placement selection
-  // this is the right list to show.
   const styles = await fetchMockupStyles(productId);
-  return styles.placements;
+
+  const placements = styles.data
+    .filter((group) => {
+      const styleList = group.mockup_styles || [];
+      if (styleList.length === 0) return false;
+
+      return styleList.some((style) => {
+        const restricted = style.restricted_to_variants;
+        return !restricted || restricted.length === 0 || restricted.includes(variantId);
+      });
+    })
+    .map((group) => group.placement);
+
+  return [...new Set(placements)];
+}
+
+function resolveMockupConfig(
+  styles: MockupStylesResponse,
+  placement: string,
+  variantId: number
+): { mockupStyleId: number; technique: string } | null {
+  const group = styles.data.find((g) => g.placement === placement);
+  if (!group) return null;
+
+  const style =
+    (group.mockup_styles || []).find((s) => {
+      const restricted = s.restricted_to_variants;
+      return !restricted || restricted.length === 0 || restricted.includes(variantId);
+    }) || group.mockup_styles?.[0];
+
+  if (!style?.id || !group.technique) return null;
+
+  return {
+    mockupStyleId: style.id,
+    technique: group.technique,
+  };
 }
 
 /** Create a mockup task and poll until completed. */
@@ -250,12 +286,22 @@ export async function generateMockup(opts: {
 }): Promise<{ mockupUrl: string | null; placement: string }> {
   const { productId, variantId, placement, imageUrl, format = "jpg" } = opts;
 
+  const styles = await fetchMockupStyles(productId);
+  const config = resolveMockupConfig(styles, placement, variantId);
+
+  if (!config) {
+    console.warn("No valid Printful mockup config found", { productId, variantId, placement });
+    return { mockupUrl: null, placement };
+  }
+
   const created = await callPrintful("create-mockup-task", {}, {
     catalog_product_id: productId,
     catalog_variant_ids: [variantId],
     placement,
-    artwork_url: imageUrl,
+    image_url: imageUrl,
     format,
+    mockup_style_id: config.mockupStyleId,
+    technique: config.technique,
   });
 
   const task = extractTask(created);
@@ -265,20 +311,48 @@ export async function generateMockup(opts: {
     return { mockupUrl: null, placement };
   }
 
-  // Poll up to ~30s.
   for (let i = 0; i < 15; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const statusRes = await callPrintful("get-mockup-task", { task_id: String(taskId) });
     const t = extractTask(statusRes);
     const status = t?.status;
+
     if (status === "completed") {
+      const variantMockups = [
+        ...(Array.isArray(t?.catalog_variant_mockups) ? t.catalog_variant_mockups : []),
+        ...(Array.isArray(t?.mockups) ? t.mockups : []),
+      ] as Record<string, unknown>[];
+
+      for (const variantEntry of variantMockups) {
+        const placementEntries = [
+          ...(Array.isArray(variantEntry?.mockups) ? variantEntry.mockups : []),
+          ...(Array.isArray(variantEntry?.placements) ? variantEntry.placements : []),
+        ] as Record<string, unknown>[];
+
+        for (const p of placementEntries) {
+          if (p?.placement === placement && typeof p?.mockup_url === "string") {
+            return { mockupUrl: p.mockup_url, placement };
+          }
+          if (p?.placement === placement && typeof p?.url === "string") {
+            return { mockupUrl: p.url, placement };
+          }
+        }
+
+        if (typeof variantEntry?.mockup_url === "string") {
+          return { mockupUrl: variantEntry.mockup_url, placement };
+        }
+      }
+
+      // Fallback: any URL anywhere in the response.
       return { mockupUrl: extractMockupUrl(statusRes), placement };
     }
+
     if (status === "failed") {
       console.warn("Mockup task failed:", t);
       return { mockupUrl: null, placement };
     }
   }
+
   return { mockupUrl: null, placement };
 }
 

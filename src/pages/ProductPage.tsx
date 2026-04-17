@@ -108,11 +108,18 @@ const ProductPage = () => {
 
   // Generate Printful V2 mockup whenever variant OR placement changes.
   useEffect(() => {
-    if (!artworkUrl || !product || !selectedVariant || !selectedPlacement) return;
+    if (!artworkUrl || !product || !selectedVariant || !selectedPlacement) {
+      setMockupUrl(null);
+      setMockupLoading(false);
+      setMockupAttempted(false);
+      return;
+    }
+
     let cancelled = false;
     setMockupUrl(null);
     setMockupLoading(true);
     setMockupAttempted(false);
+
     (async () => {
       try {
         const { mockupUrl: url } = await generateMockup({
@@ -121,7 +128,10 @@ const ProductPage = () => {
           placement: selectedPlacement,
           imageUrl: artworkUrl,
         });
-        if (!cancelled) setMockupUrl(url);
+
+        if (!cancelled) {
+          setMockupUrl(url);
+        }
       } catch (e) {
         console.error("Mockup generation failed:", e);
       } finally {
@@ -131,7 +141,10 @@ const ProductPage = () => {
         }
       }
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [artworkUrl, product?.id, selectedVariant?.id, selectedPlacement]);
 
   const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];

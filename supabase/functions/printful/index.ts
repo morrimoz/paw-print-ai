@@ -180,12 +180,12 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
-    const PRINTFUL_STORE_ID = Deno.env.get("PRINTFUL_STORE_ID");
+    const storeId = Deno.env.get("PRINTFUL_STORE_ID");
 
-    const headers = {
+    const headers: HeadersInit = {
       Authorization: `Bearer ${PRINTFUL_API_KEY}`,
       "Content-Type": "application/json",
-      ...(PRINTFUL_STORE_ID ? { "X-PF-Store-Id": PRINTFUL_STORE_ID } : {}),
+      ...(storeId ? { "X-PF-Store-Id": storeId } : {}),
     };
 
     let result: unknown;
@@ -309,84 +309,126 @@ serve(async (req) => {
           catalog_product_id,
           catalog_variant_ids,
           placement,
-          artwork_url,
+          image_url,
           format = "jpg",
+          mockup_style_id,
+          technique,
+          store_id,
         } = body as {
           catalog_product_id: number | string;
           catalog_variant_ids: Array<number | string>;
           placement: string;
-          artwork_url: string;
-          format?: string;
+          image_url: string;
+          format?: "jpg" | "png";
+          mockup_style_id?: number | string;
+          technique?: string;
+          store_id?: number | string;
         };
 
-        if (!catalog_product_id || !Array.isArray(catalog_variant_ids) || !catalog_variant_ids.length || !placement || !artwork_url) {
-          throw new Error("catalog_product_id, catalog_variant_ids, placement, artwork_url are required");
+        const variantId = Array.isArray(catalog_variant_ids) ? catalog_variant_ids[0] : null;
+
+        if (!catalog_product_id || !variantId || !placement || !image_url) {
+          throw new Error("catalog_product_id, catalog_variant_ids[0], placement, image_url are required");
         }
 
-        const parsedProductId = Number(catalog_product_id);
-        const parsedVariantIds = catalog_variant_ids
-          .map((variantId) => Number(variantId))
-          .filter(Number.isInteger);
-        if (!Number.isInteger(parsedProductId) || parsedVariantIds.length === 0) {
-          throw new Error("catalog_product_id and catalog_variant_ids must be valid integers");
-        }
+        let resolvedMockupStyleId = mockup_style_id ? Number(mockup_style_id) : null;
+        let resolvedTechnique = technique || null;
 
-        const stylesKey = `mockup-styles-${parsedProductId}`;
-        const stylesResponse = await dedupe(stylesKey, async () => {
-          const cached = getCache<{ data: MockupStyleEntry[]; supported: boolean; placements: string[] }>(stylesKey);
-          if (cached) return cached;
-
-          const res = await pfFetch(
-            `${PRINTFUL_BASE}/v2/catalog-products/${parsedProductId}/mockup-styles`,
+        if (!resolvedMockupStyleId || !resolvedTechnique) {
+          const stylesRes = await pfFetch(
+            `${PRINTFUL_BASE}/v2/catalog-products/${catalog_product_id}/mockup-styles`,
             {},
             headers
           );
-          if (!res.ok) {
-            throw new Error(`Printful mockup-styles failed [${res.status}]: ${await res.text()}`);
+
+          if (!stylesRes.ok) {
+            throw new Error(`Printful mockup-styles failed [${stylesRes.status}]: ${await stylesRes.text()}`);
           }
 
-          const json = await res.json();
-          const data = Array.isArray(json?.data) ? json.data : [];
-          const normalized = {
-            data,
-            supported: data.length > 0,
-            placements: [...new Set(data.map((entry: MockupStyleEntry) => entry.placement).filter(Boolean))] as string[],
-          };
-          setCache(stylesKey, normalized, 24 * 60 * 60 * 1000);
-          return normalized;
-        });
+          const stylesJson = await stylesRes.json();
+          const groups = stylesJson?.data || [];
 
-        const chosenStyle = chooseMockupStyle(stylesResponse.data || [], placement);
+          const matchingGroup = Array.isArray(groups)
+            ? groups.find((g: { placement?: string; mockup_styles?: Array<{ id: number; restricted_to_variants?: number[] }> }) => {
+                if (g.placement !== placement) return false;
+
+                const styles = g.mockup_styles || [];
+                if (styles.length === 0) return false;
+
+                return styles.some((style) => {
+                  const restricted = style.restricted_to_variants;
+                  return !restricted || restricted.length === 0 || restricted.includes(Number(variantId));
+                });
+              })
+            : null;
+
+          if (!matchingGroup) {
+            throw new Error(`No Printful mockup style group found for placement "${placement}" and variant "${variantId}"`);
+          }
+
+          resolvedTechnique = resolvedTechnique || matchingGroup.technique || null;
+
+          const matchingStyle = Array.isArray(matchingGroup.mockup_styles)
+            ? matchingGroup.mockup_styles.find((style: { id: number; restricted_to_variants?: number[] }) => {
+                const restricted = style.restricted_to_variants;
+                return !restricted || restricted.length === 0 || restricted.includes(Number(variantId));
+              }) || matchingGroup.mockup_styles[0]
+            : null;
+
+          if (!resolvedMockupStyleId && matchingStyle?.id) {
+            resolvedMockupStyleId = Number(matchingStyle.id);
+          }
+
+          if (!resolvedMockupStyleId) {
+            throw new Error(`No Printful mockup style id found for placement "${placement}"`);
+          }
+
+          if (!resolvedTechnique) {
+            throw new Error(`No Printful technique found for placement "${placement}"`);
+          }
+        }
+
+        const taskHeaders: HeadersInit = { ...headers };
+        if (store_id) {
+          taskHeaders["X-PF-Store-Id"] = String(store_id);
+        }
 
         const taskBody = {
           format,
-          products: [{
-            source: "catalog",
-            mockup_style_ids: [chosenStyle.mockupStyleId],
-            catalog_product_id: parsedProductId,
-            catalog_variant_ids: parsedVariantIds,
-            placements: [{
-              placement: chosenStyle.placement,
-              technique: chosenStyle.technique,
-              layers: [{
-                type: "file",
-                url: artwork_url,
-              }],
-            }],
-          }],
+          products: [
+            {
+              source: "catalog",
+              mockup_style_ids: [Number(resolvedMockupStyleId)],
+              catalog_product_id: Number(catalog_product_id),
+              catalog_variant_ids: [Number(variantId)],
+              placements: [
+                {
+                  placement,
+                  technique: resolvedTechnique,
+                  layers: [
+                    {
+                      type: "file",
+                      url: image_url,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
         };
 
         const taskRes = await pfFetch(
           `${PRINTFUL_BASE}/v2/mockup-tasks`,
           { method: "POST", body: JSON.stringify(taskBody) },
-          headers
+          taskHeaders
         );
 
         if (!taskRes.ok) {
           const errText = await taskRes.text();
-          console.error("v2 create-mockup-task failed:", taskRes.status, errText);
+          console.error("v2 create-mockup-task failed:", taskRes.status, errText, JSON.stringify(taskBody));
           throw new Error(`Mockup task creation failed [${taskRes.status}]: ${errText}`);
         }
+
         result = await taskRes.json();
         break;
       }

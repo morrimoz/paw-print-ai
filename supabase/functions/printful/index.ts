@@ -286,6 +286,7 @@ serve(async (req) => {
           mockup_style_id,
           technique,
           store_id,
+          product_options: clientProductOptions,
         } = body as {
           catalog_product_id: number | string;
           catalog_variant_ids: Array<number | string>;
@@ -295,6 +296,7 @@ serve(async (req) => {
           mockup_style_id?: number | string;
           technique?: string;
           store_id?: number | string;
+          product_options?: Record<string, unknown>;
         };
 
         const variantId = Array.isArray(catalog_variant_ids) ? catalog_variant_ids[0] : null;

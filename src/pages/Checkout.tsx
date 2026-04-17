@@ -4,6 +4,7 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { FreeShippingBadge } from "@/components/FreeShippingBadge";
 import { ArrowLeft } from "lucide-react";
 
 interface OrderItem {
@@ -69,7 +70,10 @@ const Checkout = () => {
         <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2 mb-4 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <h1 className="font-heading text-3xl font-extrabold text-foreground mb-6">Checkout</h1>
+        <h1 className="font-heading text-3xl font-extrabold text-foreground mb-3">Checkout</h1>
+        <div className="mb-6">
+          <FreeShippingBadge />
+        </div>
 
         {orderItem && (
           <div className="bg-card rounded-xl shadow-card p-5 mb-6 flex gap-4 items-center">

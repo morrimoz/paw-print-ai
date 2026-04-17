@@ -6,7 +6,7 @@ import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
 import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { FreeShippingBadge } from "@/components/FreeShippingBadge";
+
 
 // Module-level cache so we don't refetch the same product detail twice in a session.
 const startingPriceCache = new Map<number, string>();
@@ -187,10 +187,6 @@ const Gallery = () => {
           <p className="mt-3 text-center text-muted-foreground max-w-xl mx-auto">
             Browse our full catalog of premium products - every item can be customized with your AI-generated pet art.
           </p>
-
-          <div className="mt-6 flex justify-center">
-            <FreeShippingBadge />
-          </div>
 
           {/* Category filters */}
           <div className="mt-10 flex flex-wrap justify-center gap-2">

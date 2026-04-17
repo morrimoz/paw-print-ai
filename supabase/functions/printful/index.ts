@@ -286,6 +286,7 @@ serve(async (req) => {
           mockup_style_id,
           technique,
           store_id,
+          product_options: clientProductOptions,
         } = body as {
           catalog_product_id: number | string;
           catalog_variant_ids: Array<number | string>;
@@ -295,6 +296,7 @@ serve(async (req) => {
           mockup_style_id?: number | string;
           technique?: string;
           store_id?: number | string;
+          product_options?: Record<string, unknown>;
         };
 
         const variantId = Array.isArray(catalog_variant_ids) ? catalog_variant_ids[0] : null;
@@ -372,28 +374,96 @@ serve(async (req) => {
           taskHeaders["X-PF-Store-Id"] = String(store_id);
         }
 
-        const taskBody = {
-          format,
-          products: [
+        // Fetch the V2 catalog product to discover required product_options
+        // (e.g. stitch_color for embroidery products). We resolve sensible
+        // defaults from the allowed values so the user doesn't have to pick.
+        const resolvedProductOptions: Record<string, unknown> = {
+          ...(clientProductOptions || {}),
+        };
+        try {
+          const productKey = `v2-catalog-product-${catalog_product_id}`;
+          let v2Product = getCache<Record<string, unknown>>(productKey);
+          if (!v2Product) {
+            const v2Res = await pfFetch(
+              `${PRINTFUL_BASE}/v2/catalog-products/${catalog_product_id}`,
+              {},
+              headers,
+            );
+            if (v2Res.ok) {
+              const v2Json = await v2Res.json();
+              v2Product = ((v2Json?.data as Record<string, unknown>) || v2Json) as Record<string, unknown>;
+              if (v2Product) setCache(productKey, v2Product, 24 * 60 * 60 * 1000);
+            }
+          }
+
+          const productOptionsSpec = (v2Product?.product_options ||
+            (v2Product as { data?: { product_options?: unknown } })?.data?.product_options ||
+            []) as Array<Record<string, unknown>>;
+
+          if (Array.isArray(productOptionsSpec)) {
+            for (const opt of productOptionsSpec) {
+              const name = opt?.name as string | undefined;
+              if (!name) continue;
+              if (resolvedProductOptions[name] !== undefined) continue;
+
+              const required = !!opt?.required;
+              if (!required) continue;
+
+              const defaultValue =
+                (opt?.default_value as unknown) ??
+                (opt?.default as unknown) ??
+                null;
+
+              const valuesField = opt?.values ?? opt?.choices ?? opt?.allowed_values;
+              let firstAllowed: unknown = null;
+              if (Array.isArray(valuesField) && valuesField.length > 0) {
+                const first = valuesField[0];
+                firstAllowed =
+                  typeof first === "object" && first !== null
+                    ? (first as { value?: unknown; id?: unknown }).value ??
+                      (first as { id?: unknown }).id
+                    : first;
+              } else if (valuesField && typeof valuesField === "object") {
+                const keys = Object.keys(valuesField as Record<string, unknown>);
+                if (keys.length > 0) firstAllowed = keys[0];
+              }
+
+              const chosen = defaultValue ?? firstAllowed;
+              if (chosen !== null && chosen !== undefined) {
+                resolvedProductOptions[name] = chosen;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to resolve product_options from v2 catalog product:", e);
+        }
+
+        const productEntry: Record<string, unknown> = {
+          source: "catalog",
+          mockup_style_ids: [Number(resolvedMockupStyleId)],
+          catalog_product_id: Number(catalog_product_id),
+          catalog_variant_ids: [Number(variantId)],
+          placements: [
             {
-              source: "catalog",
-              mockup_style_ids: [Number(resolvedMockupStyleId)],
-              catalog_product_id: Number(catalog_product_id),
-              catalog_variant_ids: [Number(variantId)],
-              placements: [
+              placement,
+              technique: resolvedTechnique,
+              layers: [
                 {
-                  placement,
-                  technique: resolvedTechnique,
-                  layers: [
-                    {
-                      type: "file",
-                      url: image_url,
-                    },
-                  ],
+                  type: "file",
+                  url: image_url,
                 },
               ],
             },
           ],
+        };
+
+        if (Object.keys(resolvedProductOptions).length > 0) {
+          productEntry.product_options = resolvedProductOptions;
+        }
+
+        const taskBody = {
+          format,
+          products: [productEntry],
         };
 
         const taskRes = await pfFetch(

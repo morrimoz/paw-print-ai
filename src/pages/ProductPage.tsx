@@ -311,47 +311,70 @@ const ProductPage = () => {
               </div>
             )}
 
-            {sizes.length > 0 && (
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Size</label>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                        selectedSize === size
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-card text-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {(sizes.length > 0 || colors.length > 0) && (
+              <div className="flex items-start gap-4">
+                <div className="flex-1 space-y-6">
+                  {sizes.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Size</label>
+                      <div className="flex flex-wrap gap-2">
+                        {sizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedSize(size)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                              selectedSize === size
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-card text-foreground border-border hover:border-primary/50"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-            {colors.length > 0 && (
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Color: <span className="text-muted-foreground">{selectedColor}</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-10 h-10 rounded-full border-2 transition-all ${
-                        selectedColor === color
-                          ? "border-primary ring-2 ring-primary/30 scale-110"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                      style={{ backgroundColor: colorCodes[color] || "#ccc" }}
-                      title={color}
-                    />
-                  ))}
+                  {colors.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Color: <span className="text-muted-foreground">{selectedColor}</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {colors.map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setSelectedColor(color)}
+                            className={`w-10 h-10 rounded-full border-2 transition-all ${
+                              selectedColor === color
+                                ? "border-primary ring-2 ring-primary/30 scale-110"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                            style={{ backgroundColor: colorCodes[color] || "#ccc" }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {artworkUrl && (
+                  <div className="shrink-0">
+                    <label className="text-sm font-medium text-foreground mb-2 block">Your art</label>
+                    <button
+                      onClick={() => setPickerOpen(true)}
+                      className="block w-24 h-24 rounded-xl overflow-hidden border-2 border-border hover:border-primary transition-all bg-muted"
+                      title="Change artwork"
+                    >
+                      <img
+                        src={artworkUrl}
+                        alt="Selected pet art"
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

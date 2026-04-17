@@ -389,6 +389,8 @@ const ProductPage = () => {
             )}
           </div>
         </div>
+
+        <PeopleAlsoBought excludeId={product.id} />
       </div>
 
       {/* Artwork picker dialog */}

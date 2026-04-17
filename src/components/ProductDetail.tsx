@@ -82,11 +82,18 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
 
   // Re-generate the mockup whenever variant or placement changes.
   useEffect(() => {
-    if (!artworkUrl || !selectedVariant || !selectedPlacement) return;
+    if (!artworkUrl || !selectedVariant || !selectedPlacement) {
+      setMockupUrl(null);
+      setMockupLoading(false);
+      setMockupAttempted(false);
+      return;
+    }
+
     let cancelled = false;
     setMockupUrl(null);
     setMockupLoading(true);
     setMockupAttempted(false);
+
     (async () => {
       try {
         const { mockupUrl: url } = await generateMockup({
@@ -95,9 +102,12 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           placement: selectedPlacement,
           imageUrl: artworkUrl,
         });
-        if (!cancelled) setMockupUrl(url);
-      } catch {
-        // fallback handled by MockupPreview
+
+        if (!cancelled) {
+          setMockupUrl(url);
+        }
+      } catch (err) {
+        console.error("Mockup generation failed:", err);
       } finally {
         if (!cancelled) {
           setMockupLoading(false);
@@ -105,7 +115,10 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
         }
       }
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [product.id, artworkUrl, selectedVariant?.id, selectedPlacement]);
 
   const displayPrice = selectedVariant

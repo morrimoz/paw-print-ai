@@ -31,6 +31,8 @@ export function MockupPreview({
           src={mockupUrl}
           alt={`${productTitle} preview with your pet art`}
           className="w-full h-full object-contain"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
         />
       </div>
     );
@@ -45,6 +47,8 @@ export function MockupPreview({
             src={productImage}
             alt={productTitle}
             className="w-full h-full object-contain p-6 opacity-30"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
           />
         )}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-sm">

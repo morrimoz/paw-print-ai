@@ -91,11 +91,12 @@ const ProductPage = () => {
   useEffect(() => {
     if (!product || !selectedVariant) return;
     let cancelled = false;
-    fetchPlacementsForVariant(product.id, selectedVariant.id)
-      .then((p) => {
+      fetchPlacementsForVariant(product.id, selectedVariant.id)
+        .then((p) => {
         if (cancelled) return;
-        setPlacements(p);
-        setSelectedPlacement((prev) => (p.includes(prev) ? prev : (p[0] || "")));
+          const uniquePlacements = [...new Set(p)];
+          setPlacements(uniquePlacements);
+          setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : (uniquePlacements[0] || "")));
       })
       .catch(() => { if (!cancelled) setPlacements([]); });
     return () => { cancelled = true; };

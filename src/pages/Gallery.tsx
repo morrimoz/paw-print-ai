@@ -1,9 +1,12 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchProducts, checkMockupSupport } from "@/services/printful";
+import { fetchProducts, checkMockupSupport, fetchProductDetail } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
+
+// In-memory cache so we don't refetch the same product detail twice in a session.
+const startingPriceCache = new Map<number, string>();
 import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
@@ -99,6 +102,51 @@ const Gallery = () => {
   }, [activeCategory]);
 
   const products = productsByCat[activeCategory] || [];
+  const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
+
+  // Lazily fetch real "from" prices for the currently displayed products.
+  useEffect(() => {
+    let cancelled = false;
+    const toFetch = products.filter((p) => !startingPriceCache.has(p.id));
+    if (toFetch.length === 0) {
+      // hydrate from cache
+      const fromCache: Record<number, string> = {};
+      products.forEach((p) => {
+        const v = startingPriceCache.get(p.id);
+        if (v) fromCache[p.id] = v;
+      });
+      if (Object.keys(fromCache).length) setStartingPrices((s) => ({ ...s, ...fromCache }));
+      return;
+    }
+    (async () => {
+      // Fetch in small batches to avoid hammering the API
+      const batchSize = 4;
+      for (let i = 0; i < toFetch.length; i += batchSize) {
+        if (cancelled) return;
+        const batch = toFetch.slice(i, i + batchSize);
+        const results = await Promise.all(
+          batch.map(async (p) => {
+            try {
+              const detail = await fetchProductDetail(p.id);
+              const prices = (detail?.variants || []).map((v) => v.price).filter(Boolean);
+              const display = getStartingPrice(prices.length ? prices : ["15.00"]);
+              startingPriceCache.set(p.id, display);
+              return [p.id, display] as const;
+            } catch {
+              return [p.id, getStartingPrice(["15.00"])] as const;
+            }
+          })
+        );
+        if (cancelled) return;
+        setStartingPrices((s) => {
+          const next = { ...s };
+          results.forEach(([id, price]) => { next[id] = price; });
+          return next;
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [products]);
 
   return (
     <PublicLayout>
@@ -238,7 +286,9 @@ const Gallery = () => {
                       {p.variant_count} variants
                     </p>
                     <p className="text-sm font-bold text-primary mt-2">
-                      From {getStartingPrice(["15.00"])}
+                      {startingPrices[p.id]
+                        ? <>From {startingPrices[p.id]}</>
+                        : <span className="inline-block h-4 w-16 bg-muted rounded animate-pulse" />}
                     </p>
                   </div>
                 </Link>

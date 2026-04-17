@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, User } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -13,9 +13,20 @@ const navLinks = [
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [treatsPulse, setTreatsPulse] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+
+  // Listen for the bonus event dispatched by OrderSuccess and pulse the treats badge.
+  useEffect(() => {
+    const onBonus = () => {
+      setTreatsPulse(true);
+      setTimeout(() => setTreatsPulse(false), 2200);
+    };
+    window.addEventListener("treats:bonus", onBonus);
+    return () => window.removeEventListener("treats:bonus", onBonus);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -48,7 +59,15 @@ export function Header() {
           <ThemeToggle />
           {user ? (
             <>
-              <span className="text-sm text-muted-foreground">{profile?.credits_balance ?? 0} treats</span>
+              <span
+                className={`text-sm font-medium px-2 py-1 rounded-full transition-all ${
+                  treatsPulse
+                    ? "text-primary bg-primary/15 ring-2 ring-primary/40 scale-110 animate-pulse"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {profile?.credits_balance ?? 0} treats
+              </span>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/create-art">Create Art</Link>
               </Button>

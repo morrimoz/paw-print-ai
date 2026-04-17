@@ -33,18 +33,15 @@ async function callPrintful(action: string, params: Record<string, string> = {},
   if (existing) return existing;
 
   const p = (async () => {
-    const response = await fetch(
-      `https://${projectId}.supabase.co/functions/v1/printful?${queryParams}`,
-      {
-        method: body ? "POST" : "GET",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      }
-    );
+    const response = await fetch(`https://${projectId}.supabase.co/functions/v1/printful?${queryParams}`, {
+      method: body ? "POST" : "GET",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
 
     if (response.status === 429) {
       const retryHeader = response.headers.get("Retry-After");
@@ -137,7 +134,7 @@ function extractTask(taskResponse: unknown): Record<string, unknown> {
 function extractMockupUrl(taskResponse: unknown): string | null {
   const task = extractTask(taskResponse);
   const direct = [task?.mockup_url, task?.url].find(
-    (value): value is string => typeof value === "string" && value.length > 0
+    (value): value is string => typeof value === "string" && value.length > 0,
   );
   if (direct) return direct;
 
@@ -148,7 +145,7 @@ function extractMockupUrl(taskResponse: unknown): string | null {
 
   for (const variantMockup of variantMockups) {
     const nested = [variantMockup?.mockup_url, variantMockup?.url].find(
-      (value): value is string => typeof value === "string" && value.length > 0
+      (value): value is string => typeof value === "string" && value.length > 0,
     );
     if (nested) return nested;
 
@@ -159,13 +156,17 @@ function extractMockupUrl(taskResponse: unknown): string | null {
 
     for (const placement of placements) {
       const placementUrl = [placement?.mockup_url, placement?.url].find(
-        (value): value is string => typeof value === "string" && value.length > 0
+        (value): value is string => typeof value === "string" && value.length > 0,
       );
       if (placementUrl) return placementUrl;
     }
   }
 
   return null;
+}
+
+function normalizePlacement(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 export async function fetchCategories(): Promise<PrintfulCategory[]> {
@@ -233,23 +234,20 @@ export async function checkMockupSupport(productId: number): Promise<boolean> {
 }
 
 /** Distinct placements available for a product (variant-aware via mockup-styles). */
-export async function fetchPlacementsForVariant(
-  productId: number,
-  variantId: number
-): Promise<string[]> {
+export async function fetchPlacementsForVariant(productId: number, variantId: number): Promise<string[]> {
   const styles = await fetchMockupStyles(productId);
 
   const placements = styles.data
     .filter((group) => {
       const styleList = group.mockup_styles || [];
-      if (styleList.length === 0) return false;
+      if (!group.placement || styleList.length === 0) return false;
 
       return styleList.some((style) => {
         const restricted = style.restricted_to_variants;
         return !restricted || restricted.length === 0 || restricted.includes(variantId);
       });
     })
-    .map((group) => group.placement);
+    .map((group) => group.placement.trim());
 
   return [...new Set(placements)];
 }
@@ -257,9 +255,15 @@ export async function fetchPlacementsForVariant(
 function resolveMockupConfig(
   styles: MockupStylesResponse,
   placement: string,
-  variantId: number
+  variantId: number,
 ): { mockupStyleId: number; technique: string } | null {
-  const group = styles.data.find((g) => g.placement === placement);
+  const normalizedPlacement = normalizePlacement(placement);
+
+  const group = styles.data.find((g) => {
+    if (!g.placement) return false;
+    return normalizePlacement(g.placement) === normalizedPlacement;
+  });
+
   if (!group) return null;
 
   const style =
@@ -294,15 +298,19 @@ export async function generateMockup(opts: {
     return { mockupUrl: null, placement };
   }
 
-  const created = await callPrintful("create-mockup-task", {}, {
-    catalog_product_id: productId,
-    catalog_variant_ids: [variantId],
-    placement,
-    image_url: imageUrl,
-    format,
-    mockup_style_id: config.mockupStyleId,
-    technique: config.technique,
-  });
+  const created = await callPrintful(
+    "create-mockup-task",
+    {},
+    {
+      catalog_product_id: productId,
+      catalog_variant_ids: [variantId],
+      placement,
+      image_url: imageUrl,
+      format,
+      mockup_style_id: config.mockupStyleId,
+      technique: config.technique,
+    },
+  );
 
   const task = extractTask(created);
   const taskId = task?.id || task?.task_id;
@@ -330,10 +338,13 @@ export async function generateMockup(opts: {
         ] as Record<string, unknown>[];
 
         for (const p of placementEntries) {
-          if (p?.placement === placement && typeof p?.mockup_url === "string") {
+          const returnedPlacement = typeof p?.placement === "string" ? normalizePlacement(p.placement) : null;
+          const requestedPlacement = normalizePlacement(placement);
+
+          if (returnedPlacement === requestedPlacement && typeof p?.mockup_url === "string") {
             return { mockupUrl: p.mockup_url, placement };
           }
-          if (p?.placement === placement && typeof p?.url === "string") {
+          if (returnedPlacement === requestedPlacement && typeof p?.url === "string") {
             return { mockupUrl: p.url, placement };
           }
         }
@@ -365,12 +376,16 @@ export async function createOrder(
     state_code?: string;
     country_code: string;
     zip: string;
-  }
+  },
 ) {
-  const data = await callPrintful("create-order", {}, {
-    items,
-    shipping_address: shippingAddress,
-  });
+  const data = await callPrintful(
+    "create-order",
+    {},
+    {
+      items,
+      shipping_address: shippingAddress,
+    },
+  );
   return data.result;
 }
 

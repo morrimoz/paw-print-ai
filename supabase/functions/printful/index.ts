@@ -19,10 +19,9 @@ function extractMockupTask(taskResponse: unknown) {
 
 function extractMockupUrl(taskResponse: unknown): string | null {
   const task = extractMockupTask(taskResponse);
-  const directCandidates = [
-    task?.mockup_url,
-    task?.url,
-  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+  const directCandidates = [task?.mockup_url, task?.url].filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
   if (directCandidates[0]) return directCandidates[0];
 
   const variantMockups = [
@@ -31,10 +30,9 @@ function extractMockupUrl(taskResponse: unknown): string | null {
   ] as Array<Record<string, unknown>>;
 
   for (const variantMockup of variantMockups) {
-    const nestedCandidates = [
-      variantMockup?.mockup_url,
-      variantMockup?.url,
-    ].filter((value): value is string => typeof value === "string" && value.length > 0);
+    const nestedCandidates = [variantMockup?.mockup_url, variantMockup?.url].filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
+    );
     if (nestedCandidates[0]) return nestedCandidates[0];
 
     const placements = [
@@ -43,10 +41,9 @@ function extractMockupUrl(taskResponse: unknown): string | null {
     ] as Array<Record<string, unknown>>;
 
     for (const placement of placements) {
-      const placementCandidates = [
-        placement?.mockup_url,
-        placement?.url,
-      ].filter((value): value is string => typeof value === "string" && value.length > 0);
+      const placementCandidates = [placement?.mockup_url, placement?.url].filter(
+        (value): value is string => typeof value === "string" && value.length > 0,
+      );
       if (placementCandidates[0]) return placementCandidates[0];
     }
   }
@@ -158,7 +155,10 @@ serve(async (req) => {
       // ---------- CATALOG (V1) ----------
       case "categories": {
         const cached = getCache("categories");
-        if (cached) { result = cached; break; }
+        if (cached) {
+          result = cached;
+          break;
+        }
         result = await dedupe("categories", async () => {
           const res = await pfFetch(`${PRINTFUL_BASE}/categories`, {}, headers);
           if (!res.ok) throw new Error(`Printful categories failed [${res.status}]: ${await res.text()}`);
@@ -173,7 +173,10 @@ serve(async (req) => {
         const categoryId = url.searchParams.get("category_id");
         const key = `products-${categoryId || "all"}`;
         const cached = getCache(key);
-        if (cached) { result = cached; break; }
+        if (cached) {
+          result = cached;
+          break;
+        }
         result = await dedupe(key, async () => {
           const endpoint = categoryId
             ? `${PRINTFUL_BASE}/products?category_id=${categoryId}`
@@ -193,7 +196,10 @@ serve(async (req) => {
         if (!productId) throw new Error("product_id is required");
         const key = `product-${productId}`;
         const cached = getCache(key);
-        if (cached) { result = cached; break; }
+        if (cached) {
+          result = cached;
+          break;
+        }
         result = await dedupe(key, async () => {
           const res = await pfFetch(`${PRINTFUL_BASE}/products/${productId}`, {}, headers);
           if (!res.ok) throw new Error(`Printful product failed [${res.status}]: ${await res.text()}`);
@@ -210,13 +216,12 @@ serve(async (req) => {
         if (!productId) throw new Error("product_id is required");
         const key = `mockup-styles-${productId}`;
         const cached = getCache(key);
-        if (cached) { result = cached; break; }
+        if (cached) {
+          result = cached;
+          break;
+        }
         result = await dedupe(key, async () => {
-          const res = await pfFetch(
-            `${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-styles`,
-            {},
-            headers
-          );
+          const res = await pfFetch(`${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-styles`, {}, headers);
           if (res.status === 404) {
             const out = { data: [], supported: false };
             setCache(key, out, 24 * 60 * 60 * 1000);
@@ -248,13 +253,16 @@ serve(async (req) => {
         if (!productId) throw new Error("product_id is required");
         const key = `mockup-templates-${productId}-${variantIds || "all"}`;
         const cached = getCache(key);
-        if (cached) { result = cached; break; }
+        if (cached) {
+          result = cached;
+          break;
+        }
         result = await dedupe(key, async () => {
           const qs = variantIds ? `?catalog_variant_ids=${variantIds}` : "";
           const res = await pfFetch(
             `${PRINTFUL_BASE}/v2/catalog-products/${productId}/mockup-templates${qs}`,
             {},
-            headers
+            headers,
           );
           if (!res.ok) {
             throw new Error(`Printful mockup-templates failed [${res.status}]: ${await res.text()}`);
@@ -302,7 +310,7 @@ serve(async (req) => {
           const stylesRes = await pfFetch(
             `${PRINTFUL_BASE}/v2/catalog-products/${catalog_product_id}/mockup-styles`,
             {},
-            headers
+            headers,
           );
 
           if (!stylesRes.ok) {
@@ -313,21 +321,28 @@ serve(async (req) => {
           const groups = stylesJson?.data || [];
 
           const matchingGroup = Array.isArray(groups)
-            ? groups.find((g: { placement?: string; mockup_styles?: Array<{ id: number; restricted_to_variants?: number[] }> }) => {
-                if (g.placement !== placement) return false;
+            ? groups.find(
+                (g: {
+                  placement?: string;
+                  mockup_styles?: Array<{ id: number; restricted_to_variants?: number[] }>;
+                }) => {
+                  if (g.placement !== placement) return false;
 
-                const styles = g.mockup_styles || [];
-                if (styles.length === 0) return false;
+                  const styles = g.mockup_styles || [];
+                  if (styles.length === 0) return false;
 
-                return styles.some((style) => {
-                  const restricted = style.restricted_to_variants;
-                  return !restricted || restricted.length === 0 || restricted.includes(Number(variantId));
-                });
-              })
+                  return styles.some((style) => {
+                    const restricted = style.restricted_to_variants;
+                    return !restricted || restricted.length === 0 || restricted.includes(Number(variantId));
+                  });
+                },
+              )
             : null;
 
           if (!matchingGroup) {
-            throw new Error(`No Printful mockup style group found for placement "${placement}" and variant "${variantId}"`);
+            throw new Error(
+              `No Printful mockup style group found for placement "${placement}" and variant "${variantId}"`,
+            );
           }
 
           resolvedTechnique = resolvedTechnique || matchingGroup.technique || null;
@@ -384,7 +399,7 @@ serve(async (req) => {
         const taskRes = await pfFetch(
           `${PRINTFUL_BASE}/v2/mockup-tasks`,
           { method: "POST", body: JSON.stringify(taskBody) },
-          taskHeaders
+          taskHeaders,
         );
 
         if (!taskRes.ok) {
@@ -400,11 +415,7 @@ serve(async (req) => {
       case "get-mockup-task": {
         const taskId = url.searchParams.get("task_id");
         if (!taskId) throw new Error("task_id is required");
-        const res = await pfFetch(
-          `${PRINTFUL_BASE}/v2/mockup-tasks?id=${encodeURIComponent(taskId)}`,
-          {},
-          headers
-        );
+        const res = await pfFetch(`${PRINTFUL_BASE}/v2/mockup-tasks?id=${encodeURIComponent(taskId)}`, {}, headers);
         if (!res.ok) throw new Error(`Printful get-mockup-task failed [${res.status}]: ${await res.text()}`);
         result = await res.json();
         break;
@@ -422,9 +433,9 @@ serve(async (req) => {
         }
 
         const res = await pfFetch(
-          `${PRINTFUL_BASE}/orders`,
+          `${PRINTFUL_BASE}/v2/orders`,
           { method: "POST", body: JSON.stringify({ recipient: shipping_address, items }) },
-          headers
+          headers,
         );
 
         if (!res.ok) throw new Error(`Printful order failed [${res.status}]: ${await res.text()}`);
@@ -442,25 +453,19 @@ serve(async (req) => {
   } catch (e) {
     if (e instanceof RateLimitError) {
       // Surface rate limits as 429, not 500. Client can back off.
-      return new Response(
-        JSON.stringify({ error: "rate_limited", retry_after: e.retryAfter }),
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "Retry-After": String(e.retryAfter),
-          },
-        }
-      );
+      return new Response(JSON.stringify({ error: "rate_limited", retry_after: e.retryAfter }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Retry-After": String(e.retryAfter),
+        },
+      });
     }
     console.error("printful error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

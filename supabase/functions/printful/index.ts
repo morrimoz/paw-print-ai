@@ -29,8 +29,20 @@ type CatalogProductOption = {
   name?: string;
   techniques?: string[];
   type?: string;
-  values?: CatalogProductOptionValue[];
+  values?: CatalogProductOptionValue[] | Record<string, string | boolean>;
 };
+
+function getProductOptionValues(option: CatalogProductOption): CatalogProductOptionValue[] {
+  if (Array.isArray(option.values)) return option.values;
+  if (option.values && typeof option.values === "object") {
+    return Object.entries(option.values).map(([key, label]) => ({
+      key,
+      value: key,
+      title: typeof label === "string" ? label : String(label),
+    }));
+  }
+  return [];
+}
 
 function normalizeOptionValue(value: CatalogProductOptionValue): string | boolean | null {
   if (typeof value === "string" || typeof value === "boolean") return value;
@@ -45,7 +57,7 @@ function normalizeOptionValue(value: CatalogProductOptionValue): string | boolea
 }
 
 function pickDefaultProductOptionValue(option: CatalogProductOption): string | boolean | null {
-  const values = Array.isArray(option.values) ? option.values : [];
+  const values = getProductOptionValues(option);
 
   if (option.name === "stitch_color") {
     const autoValue = values.find((value) => {

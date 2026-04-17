@@ -307,41 +307,70 @@ serve(async (req) => {
         const body = await req.json();
         const {
           catalog_product_id,
-          catalog_variant_id,
+          catalog_variant_ids,
           placement,
-          image_url,
+          artwork_url,
           format = "jpg",
         } = body as {
           catalog_product_id: number | string;
-          catalog_variant_id: number | string;
+          catalog_variant_ids: Array<number | string>;
           placement: string;
-          image_url: string;
+          artwork_url: string;
           format?: string;
         };
 
-        if (!catalog_product_id || !catalog_variant_id || !placement || !image_url) {
-          throw new Error("catalog_product_id, catalog_variant_id, placement, image_url are required");
+        if (!catalog_product_id || !Array.isArray(catalog_variant_ids) || !catalog_variant_ids.length || !placement || !artwork_url) {
+          throw new Error("catalog_product_id, catalog_variant_ids, placement, artwork_url are required");
         }
 
         const parsedProductId = Number(catalog_product_id);
-        const parsedVariantId = Number(catalog_variant_id);
-        if (!Number.isInteger(parsedProductId) || !Number.isInteger(parsedVariantId)) {
-          throw new Error("catalog_product_id and catalog_variant_id must be valid integers");
+        const parsedVariantIds = catalog_variant_ids
+          .map((variantId) => Number(variantId))
+          .filter(Number.isInteger);
+        if (!Number.isInteger(parsedProductId) || parsedVariantIds.length === 0) {
+          throw new Error("catalog_product_id and catalog_variant_ids must be valid integers");
         }
 
+        const stylesKey = `mockup-styles-${parsedProductId}`;
+        const stylesResponse = await dedupe(stylesKey, async () => {
+          const cached = getCache<{ data: MockupStyleEntry[]; supported: boolean; placements: string[] }>(stylesKey);
+          if (cached) return cached;
+
+          const res = await pfFetch(
+            `${PRINTFUL_BASE}/v2/catalog-products/${parsedProductId}/mockup-styles`,
+            {},
+            headers
+          );
+          if (!res.ok) {
+            throw new Error(`Printful mockup-styles failed [${res.status}]: ${await res.text()}`);
+          }
+
+          const json = await res.json();
+          const data = Array.isArray(json?.data) ? json.data : [];
+          const normalized = {
+            data,
+            supported: data.length > 0,
+            placements: [...new Set(data.map((entry: MockupStyleEntry) => entry.placement).filter(Boolean))] as string[],
+          };
+          setCache(stylesKey, normalized, 24 * 60 * 60 * 1000);
+          return normalized;
+        });
+
+        const chosenStyle = chooseMockupStyle(stylesResponse.data || [], placement);
+
         const taskBody = {
-          catalog_product_id: parsedProductId,
           format,
           products: [{
             source: "catalog",
+            mockup_style_ids: [chosenStyle.mockupStyleId],
             catalog_product_id: parsedProductId,
-            catalog_variant_id: parsedVariantId,
+            catalog_variant_ids: parsedVariantIds,
             placements: [{
-              placement,
-              technique: "digital",
+              placement: chosenStyle.placement,
+              technique: chosenStyle.technique,
               layers: [{
-                type: "image",
-                url: image_url,
+                type: "file",
+                url: artwork_url,
               }],
             }],
           }],

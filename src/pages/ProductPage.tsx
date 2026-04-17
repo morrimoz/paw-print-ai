@@ -3,11 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  fetchProductDetail,
-  fetchPlacementsForVariant,
-  generateMockup,
-} from "@/services/printful";
+import { fetchProductDetail, fetchPlacementsForVariant, generateMockup } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { MockupPreview } from "@/components/MockupPreview";
 import { PeopleAlsoBought } from "@/components/PeopleAlsoBought";
@@ -16,13 +12,7 @@ import { ArrowLeft, ShoppingCart, Upload, Sparkles, ImagePlus, Loader2, Gift } f
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Artwork {
   id: string;
@@ -79,9 +69,7 @@ const ProductPage = () => {
 
   function getSelectedVariant(): PrintfulVariant | undefined {
     return variants.find(
-      (v) =>
-        (!selectedSize || v.size === selectedSize) &&
-        (!selectedColor || v.color === selectedColor)
+      (v) => (!selectedSize || v.size === selectedSize) && (!selectedColor || v.color === selectedColor),
     );
   }
 
@@ -89,17 +77,25 @@ const ProductPage = () => {
 
   // Load available placements for the selected variant.
   useEffect(() => {
-    if (!product || !selectedVariant) return;
+    if (!product || !selectedVariant) {
+      setPlacements([]);
+      setSelectedPlacement("");
+      return;
+    }
+
     let cancelled = false;
     fetchPlacementsForVariant(product.id, selectedVariant.id)
       .then((p) => {
         if (cancelled) return;
         const uniquePlacements = [...new Set(p)];
         setPlacements(uniquePlacements);
-        setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : (uniquePlacements[0] || "")));
+        setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : uniquePlacements[0] || ""));
       })
       .catch(() => {
-        if (!cancelled) setPlacements([]);
+        if (!cancelled) {
+          setPlacements([]);
+          setSelectedPlacement("");
+        }
       });
     return () => {
       cancelled = true;
@@ -154,9 +150,7 @@ const ProductPage = () => {
     return acc;
   }, {});
 
-  const displayPrice = selectedVariant
-    ? getDisplayPrice(selectedVariant.price)
-    : getDisplayPrice("15.00");
+  const displayPrice = selectedVariant ? getDisplayPrice(selectedVariant.price) : getDisplayPrice("15.00");
 
   function handleCustomize() {
     if (!user) {
@@ -200,9 +194,7 @@ const ProductPage = () => {
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("user_uploads").upload(path, file);
       if (upErr) throw upErr;
-      const { data: signed } = await supabase.storage
-        .from("user_uploads")
-        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      const { data: signed } = await supabase.storage.from("user_uploads").createSignedUrl(path, 60 * 60 * 24 * 365);
       if (!signed?.signedUrl) throw new Error("Couldn't get image URL");
       setArtworkUrl(signed.signedUrl);
       setPickerOpen(false);
@@ -299,7 +291,9 @@ const ProductPage = () => {
               </div>
               <div className="text-sm">
                 <p className="font-semibold text-foreground">Get 10 free treats with this purchase</p>
-                <p className="text-xs text-muted-foreground">Auto-credited after checkout - use them to generate more pet art.</p>
+                <p className="text-xs text-muted-foreground">
+                  Auto-credited after checkout - use them to generate more pet art.
+                </p>
               </div>
             </div>
 
@@ -371,12 +365,7 @@ const ProductPage = () => {
             {/* CTA */}
             <div className="pt-2 space-y-3">
               {!artworkUrl ? (
-                <Button
-                  variant="hero"
-                  size="lg"
-                  className="w-full gap-2 text-base"
-                  onClick={handleCustomize}
-                >
+                <Button variant="hero" size="lg" className="w-full gap-2 text-base" onClick={handleCustomize}>
                   <Sparkles className="h-4 w-4" /> Customize with your pet art
                 </Button>
               ) : (
@@ -390,12 +379,7 @@ const ProductPage = () => {
                   >
                     <ShoppingCart className="h-4 w-4" /> Order this - {displayPrice}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => setPickerOpen(true)}
-                  >
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => setPickerOpen(true)}>
                     Change artwork
                   </Button>
                 </>
@@ -433,11 +417,7 @@ const ProductPage = () => {
                 disabled={uploading}
                 className="w-full border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary transition-colors flex flex-col items-center gap-2 text-muted-foreground"
               >
-                {uploading ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                ) : (
-                  <Upload className="h-8 w-8" />
-                )}
+                {uploading ? <Loader2 className="h-8 w-8 animate-spin text-primary" /> : <Upload className="h-8 w-8" />}
                 <p className="text-sm">{uploading ? "Uploading..." : "Click to upload (JPG/PNG, 10MB max)"}</p>
               </button>
               <input
@@ -477,13 +457,9 @@ const ProductPage = () => {
                         }}
                         className="aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-primary transition-all"
                       >
-                        <img
-                          src={a.generated_image_url}
-                          alt={a.style}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={a.generated_image_url} alt={a.style} className="w-full h-full object-cover" />
                       </button>
-                    ) : null
+                    ) : null,
                   )}
                 </div>
               )}

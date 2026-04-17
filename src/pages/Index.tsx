@@ -78,7 +78,7 @@ const Index = () => {
         ref={heroRef}
         className="relative overflow-hidden bg-aurora grain-overlay min-h-[100vh] flex items-center"
       >
-        <div className="container relative z-10 py-16 md:py-20 flex flex-col items-center text-center gap-8">
+        <div className="container relative z-10 py-16 md:py-20 md:pt-4 flex flex-col items-center text-center gap-8">
           {/* Merch bonus promo strip - above the hero image */}
           <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 backdrop-blur">
             <Gift className="h-4 w-4 text-primary" />

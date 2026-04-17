@@ -90,46 +90,34 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     };
   }, [product.id, selectedVariant?.id]);
 
-  // Re-generate the mockup whenever variant or placement changes.
+  // Reset mockup state when inputs change. Generation is triggered manually
+  // via the "Preview Mockup" button to respect Printful rate limits.
   useEffect(() => {
-    if (!artworkUrl || !selectedVariant || !selectedPlacement) {
-      setMockupUrl(null);
-      setMockupLoading(false);
-      setMockupAttempted(false);
-      return;
-    }
+    setMockupUrl(null);
+    setMockupLoading(false);
+    setMockupAttempted(false);
+  }, [product.id, artworkUrl, selectedVariant?.id, selectedPlacement]);
 
-    let cancelled = false;
+  async function handlePreviewMockup() {
+    if (!artworkUrl || !selectedVariant || !selectedPlacement) return;
     setMockupUrl(null);
     setMockupLoading(true);
     setMockupAttempted(false);
-
-    (async () => {
-      try {
-        const { mockupUrl: url } = await generateMockup({
-          productId: product.id,
-          variantId: selectedVariant.id,
-          placement: selectedPlacement,
-          imageUrl: artworkUrl,
-        });
-
-        if (!cancelled) {
-          setMockupUrl(url);
-        }
-      } catch (err) {
-        console.error("Mockup generation failed:", err);
-      } finally {
-        if (!cancelled) {
-          setMockupLoading(false);
-          setMockupAttempted(true);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [product.id, artworkUrl, selectedVariant?.id, selectedPlacement]);
+    try {
+      const { mockupUrl: url } = await generateMockup({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        placement: selectedPlacement,
+        imageUrl: artworkUrl,
+      });
+      setMockupUrl(url);
+    } catch (err) {
+      console.error("Mockup generation failed:", err);
+    } finally {
+      setMockupLoading(false);
+      setMockupAttempted(true);
+    }
+  }
 
   const displayPrice = selectedVariant ? getDisplayPrice(selectedVariant.price) : getDisplayPrice("15.00");
 
@@ -171,9 +159,12 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
         <MockupPreview
           artworkUrl={artworkUrl}
           productTitle={product.title}
+          productImage={product.image}
           mockupUrl={mockupUrl}
           loading={mockupLoading}
           unavailable={mockupAttempted && !mockupUrl}
+          canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
+          onPreviewMockup={handlePreviewMockup}
         />
 
         <div className="space-y-6">

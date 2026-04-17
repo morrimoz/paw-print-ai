@@ -102,46 +102,36 @@ const ProductPage = () => {
     };
   }, [product?.id, selectedVariant?.id]);
 
-  // Generate Printful V2 mockup whenever variant OR placement changes.
+  // Reset mockup state when artwork, variant or placement changes.
+  // Mockup generation is now triggered manually via the "Preview Mockup" button
+  // to respect Printful's rate limits (2 mockups/minute).
   useEffect(() => {
-    if (!artworkUrl || !product || !selectedVariant || !selectedPlacement) {
-      setMockupUrl(null);
-      setMockupLoading(false);
-      setMockupAttempted(false);
-      return;
-    }
+    setMockupUrl(null);
+    setMockupLoading(false);
+    setMockupAttempted(false);
+  }, [artworkUrl, product?.id, selectedVariant?.id, selectedPlacement]);
 
-    let cancelled = false;
+  async function handlePreviewMockup() {
+    if (!artworkUrl || !product || !selectedVariant || !selectedPlacement) return;
     setMockupUrl(null);
     setMockupLoading(true);
     setMockupAttempted(false);
-
-    (async () => {
-      try {
-        const { mockupUrl: url } = await generateMockup({
-          productId: product.id,
-          variantId: selectedVariant.id,
-          placement: selectedPlacement,
-          imageUrl: artworkUrl,
-        });
-
-        if (!cancelled) {
-          setMockupUrl(url);
-        }
-      } catch (e) {
-        console.error("Mockup generation failed:", e);
-      } finally {
-        if (!cancelled) {
-          setMockupLoading(false);
-          setMockupAttempted(true);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [artworkUrl, product?.id, selectedVariant?.id, selectedPlacement]);
+    try {
+      const { mockupUrl: url } = await generateMockup({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        placement: selectedPlacement,
+        imageUrl: artworkUrl,
+      });
+      setMockupUrl(url);
+    } catch (e) {
+      console.error("Mockup generation failed:", e);
+      toast.error("Couldn't generate the mockup. Please try again in a moment.");
+    } finally {
+      setMockupLoading(false);
+      setMockupAttempted(true);
+    }
+  }
 
   const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
   const colors = [...new Set(variants.map((v) => v.color).filter(Boolean))];
@@ -263,9 +253,12 @@ const ProductPage = () => {
             <MockupPreview
               artworkUrl={artworkUrl || ""}
               productTitle={product.title}
+              productImage={product.image}
               mockupUrl={mockupUrl}
               loading={mockupLoading}
               unavailable={mockupAttempted && !mockupUrl}
+              canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
+              onPreviewMockup={handlePreviewMockup}
             />
             {!artworkUrl && (
               <p className="text-xs text-center text-muted-foreground">

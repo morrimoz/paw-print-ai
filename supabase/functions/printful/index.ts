@@ -342,7 +342,13 @@ serve(async (req) => {
           const data = json?.data || [];
           // Each entry has { placement, technique, mockup_styles: [...] }
           const placements: string[] = Array.isArray(data)
-            ? [...new Set(data.map((d: { placement?: string }) => d.placement).filter(Boolean))]
+            ? [
+                ...new Set(
+                  data
+                    .map((d: { placement?: string }) => d.placement)
+                    .filter((placement): placement is string => typeof placement === "string" && placement.length > 0),
+                ),
+              ]
             : [];
           const out = {
             data,

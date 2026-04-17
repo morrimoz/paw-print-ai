@@ -2,7 +2,6 @@ import { Loader2, Image as ImageIcon } from "lucide-react";
 
 interface MockupPreviewProps {
   artworkUrl: string;
-  productImage?: string;
   productTitle: string;
   mockupUrl?: string | null;
   loading?: boolean;
@@ -17,7 +16,6 @@ interface MockupPreviewProps {
  */
 export function MockupPreview({
   artworkUrl,
-  productImage,
   productTitle,
   mockupUrl,
   loading,
@@ -38,19 +36,10 @@ export function MockupPreview({
     );
   }
 
-  // Loading: show product image at low opacity with a spinner overlay.
+  // Loading: avoid loading third-party product CDN images here; only show progress.
   if (loading) {
     return (
-      <div className="relative aspect-square rounded-2xl overflow-hidden glass-card">
-        {productImage && (
-          <img
-            src={productImage}
-            alt={productTitle}
-            className="w-full h-full object-contain p-6 opacity-30"
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
-          />
-        )}
+      <div className="relative aspect-square rounded-2xl overflow-hidden glass-card bg-muted/40">
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-sm">
           <Loader2 className="h-8 w-8 text-primary animate-spin" />
           <p className="text-sm text-foreground font-medium">Rendering your mockup…</p>
@@ -62,20 +51,10 @@ export function MockupPreview({
 
   // No mockup yet (no artwork applied, or mockup truly unavailable).
   return (
-    <div className="relative aspect-square rounded-2xl overflow-hidden glass-card">
-      {productImage ? (
-        <img
-          src={productImage}
-          alt={productTitle}
-          className="w-full h-full object-contain p-6"
-          referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-muted">
-          <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-        </div>
-      )}
+    <div className="relative aspect-square rounded-2xl overflow-hidden glass-card bg-muted/40">
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+      </div>
       {unavailable && artworkUrl && (
         <div className="absolute bottom-3 left-3 right-3 glass-card-strong rounded-lg p-2 text-center">
           <p className="text-[11px] text-muted-foreground">

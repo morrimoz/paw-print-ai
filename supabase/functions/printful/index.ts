@@ -7,6 +7,89 @@ const corsHeaders = {
 
 const PRINTFUL_BASE = "https://api.printful.com";
 
+type MockupStyleEntry = {
+  placement?: string;
+  technique?: string;
+  mockup_styles?: Array<{ id?: number; view_name?: string; category_name?: string }>;
+};
+
+function normalizePlacement(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function chooseMockupStyle(
+  styles: MockupStyleEntry[],
+  placement: string
+): { placement: string; technique: string; mockupStyleId: number } {
+  const targetPlacement = normalizePlacement(placement);
+  const matchingPlacement = styles.find(
+    (entry) => entry.placement && normalizePlacement(entry.placement) === targetPlacement
+  );
+  const fallbackPlacement = matchingPlacement ?? styles[0];
+
+  if (!fallbackPlacement?.placement) {
+    throw new Error("No valid mockup placement returned for this product");
+  }
+
+  const styleId = [...(fallbackPlacement.mockup_styles || [])]
+    .map((style) => Number(style.id))
+    .filter(Number.isInteger)
+    .sort((a, b) => a - b)[0];
+
+  if (!styleId) {
+    throw new Error(`No mockup style id available for placement ${fallbackPlacement.placement}`);
+  }
+
+  return {
+    placement: fallbackPlacement.placement,
+    technique: fallbackPlacement.technique || "digital",
+    mockupStyleId: styleId,
+  };
+}
+
+function extractMockupTask(taskResponse: unknown) {
+  const payload = taskResponse as Record<string, unknown>;
+  if (Array.isArray(payload?.data)) return payload.data[0] as Record<string, unknown>;
+  return (payload?.data as Record<string, unknown>) || payload;
+}
+
+function extractMockupUrl(taskResponse: unknown): string | null {
+  const task = extractMockupTask(taskResponse);
+  const directCandidates = [
+    task?.mockup_url,
+    task?.url,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+  if (directCandidates[0]) return directCandidates[0];
+
+  const variantMockups = [
+    ...(Array.isArray(task?.catalog_variant_mockups) ? task.catalog_variant_mockups : []),
+    ...(Array.isArray(task?.mockups) ? task.mockups : []),
+  ] as Array<Record<string, unknown>>;
+
+  for (const variantMockup of variantMockups) {
+    const nestedCandidates = [
+      variantMockup?.mockup_url,
+      variantMockup?.url,
+    ].filter((value): value is string => typeof value === "string" && value.length > 0);
+    if (nestedCandidates[0]) return nestedCandidates[0];
+
+    const placements = [
+      ...(Array.isArray(variantMockup?.placements) ? variantMockup.placements : []),
+      ...(Array.isArray(variantMockup?.mockups) ? variantMockup.mockups : []),
+    ] as Array<Record<string, unknown>>;
+
+    for (const placement of placements) {
+      const placementCandidates = [
+        placement?.mockup_url,
+        placement?.url,
+      ].filter((value): value is string => typeof value === "string" && value.length > 0);
+      if (placementCandidates[0]) return placementCandidates[0];
+    }
+  }
+
+  return null;
+}
+
 /**
  * Printful integration with strong rate-limit safety:
  * - Catalog browsing: V1 (/categories, /products, /products/{id}) — V2 catalog is partial.
@@ -97,9 +180,12 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
+    const PRINTFUL_STORE_ID = Deno.env.get("PRINTFUL_STORE_ID");
+
     const headers = {
       Authorization: `Bearer ${PRINTFUL_API_KEY}`,
       "Content-Type": "application/json",
+      ...(PRINTFUL_STORE_ID ? { "X-PF-Store-Id": PRINTFUL_STORE_ID } : {}),
     };
 
     let result: unknown;

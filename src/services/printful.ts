@@ -123,6 +123,46 @@ export interface MockupStylesResponse {
   placements: string[];
 }
 
+function extractTask(taskResponse: unknown): Record<string, unknown> {
+  const payload = taskResponse as Record<string, unknown>;
+  if (Array.isArray(payload?.data)) return (payload.data[0] as Record<string, unknown>) || {};
+  return (payload?.data as Record<string, unknown>) || payload;
+}
+
+function extractMockupUrl(taskResponse: unknown): string | null {
+  const task = extractTask(taskResponse);
+  const direct = [task?.mockup_url, task?.url].find(
+    (value): value is string => typeof value === "string" && value.length > 0
+  );
+  if (direct) return direct;
+
+  const variantMockups = [
+    ...(Array.isArray(task?.catalog_variant_mockups) ? task.catalog_variant_mockups : []),
+    ...(Array.isArray(task?.mockups) ? task.mockups : []),
+  ] as Record<string, unknown>[];
+
+  for (const variantMockup of variantMockups) {
+    const nested = [variantMockup?.mockup_url, variantMockup?.url].find(
+      (value): value is string => typeof value === "string" && value.length > 0
+    );
+    if (nested) return nested;
+
+    const placements = [
+      ...(Array.isArray(variantMockup?.placements) ? variantMockup.placements : []),
+      ...(Array.isArray(variantMockup?.mockups) ? variantMockup.mockups : []),
+    ] as Record<string, unknown>[];
+
+    for (const placement of placements) {
+      const placementUrl = [placement?.mockup_url, placement?.url].find(
+        (value): value is string => typeof value === "string" && value.length > 0
+      );
+      if (placementUrl) return placementUrl;
+    }
+  }
+
+  return null;
+}
+
 export async function fetchCategories(): Promise<PrintfulCategory[]> {
   const cached = getCached<{ result: { categories: PrintfulCategory[] } }>("categories");
   if (cached) return cached.result?.categories || (cached.result as unknown as PrintfulCategory[]);
@@ -212,13 +252,13 @@ export async function generateMockup(opts: {
 
   const created = await callPrintful("create-mockup-task", {}, {
     catalog_product_id: productId,
-    catalog_variant_id: variantId,
+    catalog_variant_ids: [variantId],
     placement,
-    image_url: imageUrl,
+    artwork_url: imageUrl,
     format,
   });
 
-  const task = created?.data || created;
+  const task = extractTask(created);
   const taskId = task?.id || task?.task_id;
   if (!taskId) {
     console.warn("No task id from create-mockup-task", created);
@@ -229,19 +269,10 @@ export async function generateMockup(opts: {
   for (let i = 0; i < 15; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const statusRes = await callPrintful("get-mockup-task", { task_id: String(taskId) });
-    const t = statusRes?.data || statusRes;
+    const t = extractTask(statusRes);
     const status = t?.status;
     if (status === "completed") {
-      const mockups = t?.catalog_variant_mockups || t?.mockups || [];
-      for (const m of mockups) {
-        const placements = m?.mockups || m?.placements || [];
-        for (const p of placements) {
-          if (p?.mockup_url) return { mockupUrl: p.mockup_url, placement };
-          if (p?.url) return { mockupUrl: p.url, placement };
-        }
-        if (m?.mockup_url) return { mockupUrl: m.mockup_url, placement };
-      }
-      return { mockupUrl: null, placement };
+      return { mockupUrl: extractMockupUrl(statusRes), placement };
     }
     if (status === "failed") {
       console.warn("Mockup task failed:", t);

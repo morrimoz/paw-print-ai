@@ -3,11 +3,15 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchProductDetail, createMockup } from "@/services/printful";
+import {
+  fetchProductDetail,
+  fetchPlacementsForVariant,
+  generateMockup,
+} from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { MockupPreview } from "@/components/MockupPreview";
 import { getDisplayPrice, getMarkedUpPrice } from "@/utils/pricing";
-import { ArrowLeft, ShoppingCart, Upload, Sparkles, ImagePlus, Loader2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Upload, Sparkles, ImagePlus, Loader2, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -36,6 +40,9 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
+
+  const [placements, setPlacements] = useState<string[]>([]);
+  const [selectedPlacement, setSelectedPlacement] = useState<string>("");
 
   const [artworkUrl, setArtworkUrl] = useState<string | null>(null);
   const [mockupUrl, setMockupUrl] = useState<string | null>(null);
@@ -68,29 +75,6 @@ const ProductPage = () => {
       .finally(() => setLoading(false));
   }, [productId]);
 
-  // Generate Printful mockup when artwork is set
-  useEffect(() => {
-    if (!artworkUrl || !product) return;
-    setMockupLoading(true);
-    setMockupUrl(null);
-    const variant = getSelectedVariant();
-    createMockup(product.id, artworkUrl, variant ? [variant.id] : undefined)
-      .then((res) => {
-        if (!res.fallback && res.mockups?.[0]?.mockup_url) {
-          setMockupUrl(res.mockups[0].mockup_url);
-        }
-      })
-      .catch(() => {/* fallback handled by MockupPreview */})
-      .finally(() => setMockupLoading(false));
-  }, [artworkUrl, product?.id]);
-
-  const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
-  const colors = [...new Set(variants.map((v) => v.color).filter(Boolean))];
-  const colorCodes = variants.reduce<Record<string, string>>((acc, v) => {
-    if (v.color && v.color_code) acc[v.color] = v.color_code;
-    return acc;
-  }, {});
-
   function getSelectedVariant(): PrintfulVariant | undefined {
     return variants.find(
       (v) =>
@@ -100,6 +84,52 @@ const ProductPage = () => {
   }
 
   const selectedVariant = getSelectedVariant();
+
+  // Load available placements for the selected variant.
+  useEffect(() => {
+    if (!product || !selectedVariant) return;
+    let cancelled = false;
+    fetchPlacementsForVariant(product.id, selectedVariant.id)
+      .then((p) => {
+        if (cancelled) return;
+        setPlacements(p);
+        setSelectedPlacement((prev) => (p.includes(prev) ? prev : (p[0] || "")));
+      })
+      .catch(() => { if (!cancelled) setPlacements([]); });
+    return () => { cancelled = true; };
+  }, [product?.id, selectedVariant?.id]);
+
+  // Generate Printful V2 mockup whenever variant OR placement changes.
+  useEffect(() => {
+    if (!artworkUrl || !product || !selectedVariant || !selectedPlacement) return;
+    let cancelled = false;
+    setMockupUrl(null);
+    setMockupLoading(true);
+    (async () => {
+      try {
+        const { mockupUrl: url } = await generateMockup({
+          productId: product.id,
+          variantId: selectedVariant.id,
+          placement: selectedPlacement,
+          imageUrl: artworkUrl,
+        });
+        if (!cancelled) setMockupUrl(url);
+      } catch (e) {
+        console.error("Mockup generation failed:", e);
+      } finally {
+        if (!cancelled) setMockupLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [artworkUrl, product?.id, selectedVariant?.id, selectedPlacement]);
+
+  const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
+  const colors = [...new Set(variants.map((v) => v.color).filter(Boolean))];
+  const colorCodes = variants.reduce<Record<string, string>>((acc, v) => {
+    if (v.color && v.color_code) acc[v.color] = v.color_code;
+    return acc;
+  }, {});
+
   const displayPrice = selectedVariant
     ? getDisplayPrice(selectedVariant.price)
     : getDisplayPrice("15.00");
@@ -176,6 +206,7 @@ const ProductPage = () => {
           product_image: product?.image,
           size: selectedVariant.size,
           color: selectedVariant.color,
+          placement: selectedPlacement,
           price,
           artwork_url: artworkUrl,
         },
@@ -215,7 +246,7 @@ const ProductPage = () => {
           <div className="space-y-4">
             <MockupPreview
               artworkUrl={artworkUrl || ""}
-              productImage={product.image}
+              productImage={selectedVariant?.image || product.image}
               productTitle={product.title}
               mockupUrl={mockupUrl}
               loading={mockupLoading}
@@ -236,6 +267,38 @@ const ProductPage = () => {
               <h1 className="font-heading text-3xl font-extrabold text-foreground">{product.title}</h1>
               <p className="text-3xl font-bold text-primary mt-2">{displayPrice}</p>
             </div>
+
+            {/* +10 free treats promo */}
+            <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15">
+                <Gift className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-sm">
+                <p className="font-semibold text-foreground">Get 10 free treats with this purchase</p>
+                <p className="text-xs text-muted-foreground">Auto-credited after checkout - use them to generate more pet art.</p>
+              </div>
+            </div>
+
+            {placements.length > 1 && artworkUrl && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Placement</label>
+                <div className="flex flex-wrap gap-2">
+                  {placements.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setSelectedPlacement(p)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${
+                        selectedPlacement === p
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card text-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {p.replace(/_/g, " ")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {sizes.length > 0 && (
               <div>

@@ -1,7 +1,7 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Upload, Palette, ShoppingBag, Sparkles, Star, ArrowRight } from "lucide-react";
+import { Upload, Palette, ShoppingBag, Sparkles, Star, ArrowRight, Gift } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -117,6 +117,14 @@ const Index = () => {
               <Sparkles className="h-4 w-4 text-primary" /> 5 free generations when you sign up - no credit card
               required
             </p>
+
+            {/* Merch bonus promo strip */}
+            <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 backdrop-blur">
+              <Gift className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
+                Bonus: order any merch and we'll add <span className="text-primary font-bold">10 free treats</span> to your account.
+              </span>
+            </div>
           </div>
         </div>
       </section>

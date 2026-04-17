@@ -140,6 +140,7 @@ export type Database = {
           artwork_id: string | null
           created_at: string
           id: string
+          merch_treats_awarded: boolean
           printful_order_id: string | null
           product_type: string
           quantity: number
@@ -154,6 +155,7 @@ export type Database = {
           artwork_id?: string | null
           created_at?: string
           id?: string
+          merch_treats_awarded?: boolean
           printful_order_id?: string | null
           product_type: string
           quantity?: number
@@ -168,6 +170,7 @@ export type Database = {
           artwork_id?: string | null
           created_at?: string
           id?: string
+          merch_treats_awarded?: boolean
           printful_order_id?: string | null
           product_type?: string
           quantity?: number

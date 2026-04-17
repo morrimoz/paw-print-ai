@@ -2,7 +2,7 @@
 // It is applied to every Printful base price across the entire app
 // (gallery, product detail, checkout, order totals).
 // Example: 2.0 = 100% markup, 2.5 = 150% markup, 3.0 = 200% markup.
-const MARKUP_MULTIPLIER = 2.5;
+const MARKUP_MULTIPLIER = 1;
 
 /**
  * Apply markup to Printful base price
@@ -30,6 +30,6 @@ export function getMarkedUpPrice(basePriceStr: string | number): number {
  */
 export function getStartingPrice(prices: (string | number)[]): string {
   if (!prices.length) return "$0.00";
-  const min = Math.min(...prices.map(p => typeof p === "string" ? parseFloat(p) : p).filter(p => !isNaN(p)));
+  const min = Math.min(...prices.map((p) => (typeof p === "string" ? parseFloat(p) : p)).filter((p) => !isNaN(p)));
   return getDisplayPrice(min);
 }

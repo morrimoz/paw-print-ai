@@ -12,30 +12,56 @@ function setCache(key: string, data: unknown) {
   cache.set(key, { data, ts: Date.now() });
 }
 
+// In-flight request dedup so concurrent identical fetches share one network call.
+const inflight = new Map<string, Promise<unknown>>();
+
+class PrintfulRateLimitError extends Error {
+  retryAfter: number;
+  constructor(retryAfter: number) {
+    super(`Rate limited; retry after ${retryAfter}s`);
+    this.retryAfter = retryAfter;
+  }
+}
+
 async function callPrintful(action: string, params: Record<string, string> = {}, body?: unknown) {
   const queryParams = new URLSearchParams({ action, ...params });
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  const response = await fetch(
-    `https://${projectId}.supabase.co/functions/v1/printful?${queryParams}`,
-    {
-      method: body ? "POST" : "GET",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-      body: body ? JSON.stringify(body) : undefined,
+  const dedupKey = `${action}:${queryParams.toString()}:${body ? JSON.stringify(body) : ""}`;
+  const existing = inflight.get(dedupKey);
+  if (existing) return existing;
+
+  const p = (async () => {
+    const response = await fetch(
+      `https://${projectId}.supabase.co/functions/v1/printful?${queryParams}`,
+      {
+        method: body ? "POST" : "GET",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      }
+    );
+
+    if (response.status === 429) {
+      const retryHeader = response.headers.get("Retry-After");
+      const retryAfter = parseInt(retryHeader || "60", 10);
+      throw new PrintfulRateLimitError(retryAfter);
     }
-  );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Printful API error: ${response.status}`);
-  }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Printful API error: ${response.status}`);
+    }
 
-  return response.json();
+    return response.json();
+  })().finally(() => inflight.delete(dedupKey));
+
+  inflight.set(dedupKey, p);
+  return p;
 }
 
 export interface PrintfulCategory {
@@ -81,31 +107,25 @@ export interface PrintfulProductDetail {
   variants: PrintfulVariant[];
 }
 
-/** V2 mockup style entry (one per technique/style/variant combination). */
-export interface MockupStyle {
-  id: number;
-  technique_key: string;
-  catalog_variant_ids: number[];
-  placements: { placement: string; print_area_width: number; print_area_height: number }[];
+/** V2 mockup style group (one per placement). */
+export interface MockupStyleGroup {
+  placement: string;
+  technique?: string;
+  display_name?: string;
+  print_area_width?: number;
+  print_area_height?: number;
+  mockup_styles?: { id: number; view_name: string; category_name: string }[];
 }
 
-/** V2 mockup template (per variant — describes available placements). */
-export interface MockupTemplate {
-  catalog_variant_id: number;
-  technique_key: string;
-  placement: string;
-  background_url?: string;
-  background_color?: string;
-  print_area_width: number;
-  print_area_height: number;
-  print_area_top: number;
-  print_area_left: number;
-  image_url?: string;
+export interface MockupStylesResponse {
+  data: MockupStyleGroup[];
+  supported: boolean;
+  placements: string[];
 }
 
 export async function fetchCategories(): Promise<PrintfulCategory[]> {
   const cached = getCached<{ result: { categories: PrintfulCategory[] } }>("categories");
-  if (cached) return cached.result?.categories || cached.result as unknown as PrintfulCategory[];
+  if (cached) return cached.result?.categories || (cached.result as unknown as PrintfulCategory[]);
 
   const data = await callPrintful("categories");
   setCache("categories", data);
@@ -137,18 +157,27 @@ export async function fetchProductDetail(productId: number): Promise<PrintfulPro
 
 // =================== V2 MOCKUPS ===================
 
-/** Returns the V2 mockup styles for a product (and whether mockups are supported at all). */
-export async function fetchMockupStyles(productId: number): Promise<{ data: MockupStyle[]; supported: boolean }> {
+/**
+ * Returns the V2 mockup styles for a product (and whether mockups are supported at all).
+ * The response shape from the API is:
+ *   { data: [ { placement, technique, mockup_styles: [...] }, ... ] }
+ * Our edge function enriches it with `supported` and `placements` (the unique placement keys).
+ */
+export async function fetchMockupStyles(productId: number): Promise<MockupStylesResponse> {
   const key = `mockup-styles-${productId}`;
-  const cached = getCached<{ data: MockupStyle[]; supported: boolean }>(key);
+  const cached = getCached<MockupStylesResponse>(key);
   if (cached) return cached;
   try {
     const res = await callPrintful("mockup-styles", { product_id: String(productId) });
-    const out = { data: res.data || [], supported: !!res.supported };
+    const out: MockupStylesResponse = {
+      data: res.data || [],
+      supported: !!res.supported,
+      placements: res.placements || [],
+    };
     setCache(key, out);
     return out;
   } catch {
-    return { data: [], supported: false };
+    return { data: [], supported: false, placements: [] };
   }
 }
 
@@ -158,33 +187,17 @@ export async function checkMockupSupport(productId: number): Promise<boolean> {
   return styles.supported;
 }
 
-/** Returns the placements available for the given variants of a product. */
-export async function fetchMockupTemplates(
-  productId: number,
-  variantIds?: number[]
-): Promise<{ data: MockupTemplate[] }> {
-  const params: Record<string, string> = { product_id: String(productId) };
-  if (variantIds?.length) params.variant_ids = variantIds.join(",");
-  const key = `mockup-templates-${productId}-${params.variant_ids || "all"}`;
-  const cached = getCached<{ data: MockupTemplate[] }>(key);
-  if (cached) return cached;
-  const res = await callPrintful("mockup-templates", params);
-  const out = { data: res.data || [] };
-  setCache(key, out);
-  return out;
-}
-
-/** Distinct placements available for a single variant. */
+/** Distinct placements available for a product (variant-aware via mockup-styles). */
 export async function fetchPlacementsForVariant(
   productId: number,
-  variantId: number
+  _variantId: number
 ): Promise<string[]> {
-  const tpl = await fetchMockupTemplates(productId, [variantId]);
-  const placements = new Set<string>();
-  for (const t of tpl.data) {
-    if (t.catalog_variant_id === variantId && t.placement) placements.add(t.placement);
-  }
-  return Array.from(placements);
+  // mockup-styles already gives us the canonical list of placements that support
+  // mockup generation for this product. It's variant-agnostic in V2 unless
+  // restricted_to_variants is set on individual styles — for placement selection
+  // this is the right list to show.
+  const styles = await fetchMockupStyles(productId);
+  return styles.placements;
 }
 
 /** Create a mockup task and poll until completed. */
@@ -205,7 +218,6 @@ export async function generateMockup(opts: {
     format,
   });
 
-  // V2 returns either { data: { id, status, ... } } or { id, status }.
   const task = created?.data || created;
   const taskId = task?.id || task?.task_id;
   if (!taskId) {
@@ -220,7 +232,6 @@ export async function generateMockup(opts: {
     const t = statusRes?.data || statusRes;
     const status = t?.status;
     if (status === "completed") {
-      // Extract first mockup_url from any nested shape.
       const mockups = t?.catalog_variant_mockups || t?.mockups || [];
       for (const m of mockups) {
         const placements = m?.mockups || m?.placements || [];
@@ -257,3 +268,5 @@ export async function createOrder(
   });
   return data.result;
 }
+
+export { PrintfulRateLimitError };

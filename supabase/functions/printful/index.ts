@@ -254,9 +254,8 @@ serve(async (req) => {
               placement,
               technique: "digital",
               layers: [{
-                type: "file",
-                image_url,
-                source: "url",
+                type: "image",
+                url: image_url,
               }],
             }],
           }],

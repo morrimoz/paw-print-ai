@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MockupPreview } from "./MockupPreview";
 import { getDisplayPrice, getMarkedUpPrice } from "@/utils/pricing";
-import { fetchProductDetail, createMockup } from "@/services/printful";
+import {
+  fetchProductDetail,
+  fetchPlacementsForVariant,
+  generateMockup,
+} from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,64 +23,29 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
+  const [placements, setPlacements] = useState<string[]>([]);
+  const [selectedPlacement, setSelectedPlacement] = useState<string>("");
   const [mockupUrl, setMockupUrl] = useState<string | null>(null);
   const [mockupLoading, setMockupLoading] = useState(false);
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    loadProduct();
-  }, [product.id]);
-
-  async function loadProduct() {
-    setLoading(true);
-    try {
-      const detail = await fetchProductDetail(product.id);
-      const availableVariants = detail.variants.filter((v) => v.in_stock);
-      setVariants(availableVariants.length > 0 ? availableVariants : detail.variants);
-      
-      // Auto-select first size and color
-      const sizes = [...new Set(detail.variants.map((v) => v.size).filter(Boolean))];
-      const colors = [...new Set(detail.variants.map((v) => v.color).filter(Boolean))];
-      if (sizes.length) setSelectedSize(sizes[0]);
-      if (colors.length) setSelectedColor(colors[0]);
-    } catch (err) {
-      console.error("Failed to load product details:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Re-generate the mockup whenever the user picks a different size/color.
-  // We immediately clear the previous mockup so the UI shows the new variant's
-  // base image with a "rendering" loader instead of the old (wrong-size) mockup.
-  useEffect(() => {
-    if (!artworkUrl) return;
-    const selectedVariant = getSelectedVariant();
-    if (!selectedVariant) return;
-
     let cancelled = false;
-    setMockupUrl(null);
-    setMockupLoading(true);
-
-    (async () => {
-      try {
-        const result = await createMockup(product.id, artworkUrl, [selectedVariant.id]);
+    setLoading(true);
+    fetchProductDetail(product.id)
+      .then((detail) => {
         if (cancelled) return;
-        if (!result.fallback && result.mockups?.length > 0) {
-          setMockupUrl(result.mockups[0].mockup_url);
-        }
-      } catch {
-        // Fallback handled by MockupPreview (shows variant image)
-      } finally {
-        if (!cancelled) setMockupLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, artworkUrl, selectedSize, selectedColor, variants.length]);
+        const availableVariants = detail.variants.filter((v) => v.in_stock);
+        setVariants(availableVariants.length > 0 ? availableVariants : detail.variants);
+        const sizes = [...new Set(detail.variants.map((v) => v.size).filter(Boolean))];
+        const colors = [...new Set(detail.variants.map((v) => v.color).filter(Boolean))];
+        if (sizes.length) setSelectedSize(sizes[0]);
+        if (colors.length) setSelectedColor(colors[0]);
+      })
+      .catch((err) => console.error("Failed to load product details:", err))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [product.id]);
 
   const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
   const colors = [...new Set(variants.map((v) => v.color).filter(Boolean))];
@@ -94,6 +63,45 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
   }
 
   const selectedVariant = getSelectedVariant();
+
+  // Load placements available for the selected variant.
+  useEffect(() => {
+    if (!selectedVariant) return;
+    let cancelled = false;
+    fetchPlacementsForVariant(product.id, selectedVariant.id)
+      .then((p) => {
+        if (cancelled) return;
+        setPlacements(p);
+        setSelectedPlacement((prev) => (p.includes(prev) ? prev : (p[0] || "")));
+      })
+      .catch(() => { if (!cancelled) setPlacements([]); });
+    return () => { cancelled = true; };
+  }, [product.id, selectedVariant?.id]);
+
+  // Re-generate the mockup whenever variant or placement changes.
+  useEffect(() => {
+    if (!artworkUrl || !selectedVariant || !selectedPlacement) return;
+    let cancelled = false;
+    setMockupUrl(null);
+    setMockupLoading(true);
+    (async () => {
+      try {
+        const { mockupUrl: url } = await generateMockup({
+          productId: product.id,
+          variantId: selectedVariant.id,
+          placement: selectedPlacement,
+          imageUrl: artworkUrl,
+        });
+        if (!cancelled) setMockupUrl(url);
+      } catch {
+        // fallback handled by MockupPreview
+      } finally {
+        if (!cancelled) setMockupLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [product.id, artworkUrl, selectedVariant?.id, selectedPlacement]);
+
   const displayPrice = selectedVariant
     ? getDisplayPrice(selectedVariant.price)
     : getDisplayPrice("15.00");
@@ -133,7 +141,6 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Mockup Preview - falls back to the selected variant's image so size/color changes are reflected instantly */}
         <MockupPreview
           artworkUrl={artworkUrl}
           productImage={selectedVariant?.image || product.image}
@@ -142,7 +149,6 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           loading={mockupLoading}
         />
 
-        {/* Product Info */}
         <div className="space-y-6">
           <div>
             <p className="text-xs text-primary font-medium uppercase tracking-wider mb-1">{product.brand}</p>
@@ -150,7 +156,27 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
             <p className="text-3xl font-bold text-primary mt-2">{displayPrice}</p>
           </div>
 
-          {/* Size Selector */}
+          {placements.length > 1 && (
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">Placement</label>
+              <div className="flex flex-wrap gap-2">
+                {placements.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setSelectedPlacement(p)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${
+                      selectedPlacement === p
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-foreground border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {p.replace(/_/g, " ")}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {sizes.length > 0 && (
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Size</label>
@@ -172,7 +198,6 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
             </div>
           )}
 
-          {/* Color Selector */}
           {colors.length > 0 && (
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">
@@ -196,7 +221,6 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
             </div>
           )}
 
-          {/* Add to Order */}
           <Button
             variant="hero"
             size="lg"

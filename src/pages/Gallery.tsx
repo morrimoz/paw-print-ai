@@ -37,8 +37,8 @@ const Gallery = () => {
   const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
   const gridRef = useScrollReveal<HTMLDivElement>(".reveal");
 
-  // Build a horizontal carousel of products that support live Printful mockups,
-  // pulled from the same product fetches we already use for the categories below.
+  // Build a horizontal carousel of products that support live Printful V2 mockups.
+  // We probe candidates 3 at a time so we don't hit Printful's 429 rate limit.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -53,11 +53,21 @@ const Gallery = () => {
         }
         const seen = new Set<number>();
         const unique = candidates.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+
+        // Probe in batches of 3 — kind to Printful's rate limits, fast enough for UX.
         const supported: PrintfulProduct[] = [];
-        for (const p of unique) {
-          if (supported.length >= 12) break;
-          const ok = await checkMockupSupport(p.id);
-          if (ok) supported.push(p);
+        const batchSize = 3;
+        for (let i = 0; i < unique.length && supported.length < 12; i += batchSize) {
+          if (cancelled) return;
+          const batch = unique.slice(i, i + batchSize);
+          const results = await Promise.all(
+            batch.map(async (p) => ({ p, ok: await checkMockupSupport(p.id).catch(() => false) }))
+          );
+          for (const { p, ok } of results) {
+            if (ok && supported.length < 12) supported.push(p);
+          }
+          // Tiny pause between batches to be extra polite.
+          await new Promise((r) => setTimeout(r, 250));
         }
         if (!cancelled) setMockupSupported(supported);
       } finally {

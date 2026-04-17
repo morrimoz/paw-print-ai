@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Upload, Sparkles, ImagePlus, Contrast, Film, Palette, Brush, Smile, Wand2 } from "lucide-react";
+import { Upload, Sparkles, ImagePlus, Contrast, Film, Palette, Camera, Smile, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,15 +9,15 @@ import { useNavigate } from "react-router-dom";
 import styleBlackWhite from "@/assets/style-blackandwhite.webp";
 import stylePixar from "@/assets/style-pixar.jpg";
 import styleRenaissance from "@/assets/style-renaissance.webp";
-import styleWatercolor from "@/assets/style-watercolor.webp";
+import styleHyperrealistic from "@/assets/style-hyperrealistic.png";
 import styleHumorous from "@/assets/style-humorous.webp";
 import styleCartoon from "@/assets/style-cartoon.webp";
 
 const artStyles = [
   { id: "dramatic-bw", name: "Dramatic B&W", image: styleBlackWhite, Icon: Contrast },
   { id: "pixar", name: "Pixar Movie", image: stylePixar, Icon: Film },
+  { id: "hyperrealistic", name: "Hyperrealistic", image: styleHyperrealistic, Icon: Camera },
   { id: "renaissance-oil", name: "Renaissance Oil", image: styleRenaissance, Icon: Palette },
-  { id: "watercolor", name: "Watercolor Art", image: styleWatercolor, Icon: Brush },
   { id: "humorous", name: "Humorous Scenes", image: styleHumorous, Icon: Smile },
   { id: "cartoon", name: "Cartoon", image: styleCartoon, Icon: Wand2 },
 ];

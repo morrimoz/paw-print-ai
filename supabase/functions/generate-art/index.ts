@@ -426,7 +426,7 @@ serve(async (req) => {
     }
 
     // Persist artwork
-    const promptForRecord = `${STYLE_DIRECTORS[style]?.label || style}: ${user_prompt}`;
+    const promptForRecord = `${STYLE_DIRECTORS[resolvedStyle]?.label || resolvedStyle}: ${user_prompt}`;
 
     const { data: artwork, error: artworkError } = await supabase
       .from("artworks")
@@ -434,7 +434,7 @@ serve(async (req) => {
         user_id: user.id,
         original_image_url,
         generated_image_url,
-        style,
+        style: resolvedStyle,
         prompt: promptForRecord,
         credits_consumed: 1,
       })

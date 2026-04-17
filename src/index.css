@@ -228,13 +228,15 @@
       border-color 0.3s ease;
     will-change: transform, box-shadow;
   }
-  .card-lift:hover {
-    transform: translateY(-6px);
-    box-shadow:
-      0 24px 48px -16px hsl(var(--primary) / 0.28),
-      0 8px 24px -8px hsl(var(--foreground) / 0.18),
-      inset 0 1px 0 hsl(0 0% 100% / 0.12);
-    border-color: hsl(var(--primary) / 0.4);
+  @media (hover: hover) {
+    .card-lift:hover {
+      transform: translateY(-6px);
+      box-shadow:
+        0 24px 48px -16px hsl(var(--primary) / 0.28),
+        0 8px 24px -8px hsl(var(--foreground) / 0.18),
+        inset 0 1px 0 hsl(0 0% 100% / 0.12);
+      border-color: hsl(var(--primary) / 0.4);
+    }
   }
 
   /* Animated gradient ring on hover (liquid border vibe) */
@@ -257,7 +259,9 @@
     animation: gradient-shift 5s linear infinite;
     pointer-events: none;
   }
-  .ring-gradient-hover:hover::before { opacity: 1; }
+  @media (hover: hover) {
+    .ring-gradient-hover:hover::before { opacity: 1; }
+  }
 
   @keyframes gradient-shift {
     0%   { background-position: 0% 50%; }

@@ -94,11 +94,16 @@ const ProductPage = () => {
     fetchPlacementsForVariant(product.id, selectedVariant.id)
       .then((p) => {
         if (cancelled) return;
-        setPlacements(p);
-        setSelectedPlacement((prev) => (p.includes(prev) ? prev : (p[0] || "")));
+        const uniquePlacements = [...new Set(p)];
+        setPlacements(uniquePlacements);
+        setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : (uniquePlacements[0] || "")));
       })
-      .catch(() => { if (!cancelled) setPlacements([]); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) setPlacements([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [product?.id, selectedVariant?.id]);
 
   // Generate Printful V2 mockup whenever variant OR placement changes.

@@ -72,8 +72,9 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     fetchPlacementsForVariant(product.id, selectedVariant.id)
       .then((p) => {
         if (cancelled) return;
-        setPlacements(p);
-        setSelectedPlacement((prev) => (p.includes(prev) ? prev : (p[0] || "")));
+        const uniquePlacements = [...new Set(p)];
+        setPlacements(uniquePlacements);
+        setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : (uniquePlacements[0] || "")));
       })
       .catch(() => { if (!cancelled) setPlacements([]); });
     return () => { cancelled = true; };

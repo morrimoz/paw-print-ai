@@ -126,8 +126,9 @@
     @apply border-border;
   }
 
-  body {
+  html, body {
     @apply bg-background text-foreground font-body antialiased;
+    overflow-x: clip;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -164,6 +165,10 @@
   }
 
   /* Animated SVG grain overlay - slow drift on loop */
+  .grain-overlay {
+    position: relative;
+    overflow: hidden;
+  }
   .grain-overlay::after {
     content: "";
     position: absolute;

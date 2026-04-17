@@ -81,6 +81,28 @@ export interface PrintfulProductDetail {
   variants: PrintfulVariant[];
 }
 
+/** V2 mockup style entry (one per technique/style/variant combination). */
+export interface MockupStyle {
+  id: number;
+  technique_key: string;
+  catalog_variant_ids: number[];
+  placements: { placement: string; print_area_width: number; print_area_height: number }[];
+}
+
+/** V2 mockup template (per variant — describes available placements). */
+export interface MockupTemplate {
+  catalog_variant_id: number;
+  technique_key: string;
+  placement: string;
+  background_url?: string;
+  background_color?: string;
+  print_area_width: number;
+  print_area_height: number;
+  print_area_top: number;
+  print_area_left: number;
+  image_url?: string;
+}
+
 export async function fetchCategories(): Promise<PrintfulCategory[]> {
   const cached = getCached<{ result: { categories: PrintfulCategory[] } }>("categories");
   if (cached) return cached.result?.categories || cached.result as unknown as PrintfulCategory[];
@@ -113,32 +135,109 @@ export async function fetchProductDetail(productId: number): Promise<PrintfulPro
   return data.result;
 }
 
-export async function createMockup(
-  productId: number,
-  imageUrl: string,
-  variantIds?: number[]
-): Promise<{ mockups: { placement: string; variant_ids: number[]; mockup_url: string }[]; fallback?: boolean }> {
-  const data = await callPrintful("create-mockup", {}, {
-    product_id: productId,
-    image_url: imageUrl,
-    variant_ids: variantIds,
-  });
-  return data.result;
+// =================== V2 MOCKUPS ===================
+
+/** Returns the V2 mockup styles for a product (and whether mockups are supported at all). */
+export async function fetchMockupStyles(productId: number): Promise<{ data: MockupStyle[]; supported: boolean }> {
+  const key = `mockup-styles-${productId}`;
+  const cached = getCached<{ data: MockupStyle[]; supported: boolean }>(key);
+  if (cached) return cached;
+  try {
+    const res = await callPrintful("mockup-styles", { product_id: String(productId) });
+    const out = { data: res.data || [], supported: !!res.supported };
+    setCache(key, out);
+    return out;
+  } catch {
+    return { data: [], supported: false };
+  }
 }
 
-/** Returns true if Printful mockup-generator supports this product (printfiles exist). */
+/** Truthful check that this product supports V2 mockup generation. */
 export async function checkMockupSupport(productId: number): Promise<boolean> {
-  const key = `mockup-support-${productId}`;
-  const cached = getCached<boolean>(key);
-  if (cached !== null) return cached;
-  try {
-    const data = await callPrintful("printfiles", { product_id: String(productId) });
-    const supported = !!(data?.result?.printfiles?.length && data?.result?.variant_printfiles?.length);
-    setCache(key, supported);
-    return supported;
-  } catch {
-    return false;
+  const styles = await fetchMockupStyles(productId);
+  return styles.supported;
+}
+
+/** Returns the placements available for the given variants of a product. */
+export async function fetchMockupTemplates(
+  productId: number,
+  variantIds?: number[]
+): Promise<{ data: MockupTemplate[] }> {
+  const params: Record<string, string> = { product_id: String(productId) };
+  if (variantIds?.length) params.variant_ids = variantIds.join(",");
+  const key = `mockup-templates-${productId}-${params.variant_ids || "all"}`;
+  const cached = getCached<{ data: MockupTemplate[] }>(key);
+  if (cached) return cached;
+  const res = await callPrintful("mockup-templates", params);
+  const out = { data: res.data || [] };
+  setCache(key, out);
+  return out;
+}
+
+/** Distinct placements available for a single variant. */
+export async function fetchPlacementsForVariant(
+  productId: number,
+  variantId: number
+): Promise<string[]> {
+  const tpl = await fetchMockupTemplates(productId, [variantId]);
+  const placements = new Set<string>();
+  for (const t of tpl.data) {
+    if (t.catalog_variant_id === variantId && t.placement) placements.add(t.placement);
   }
+  return Array.from(placements);
+}
+
+/** Create a mockup task and poll until completed. */
+export async function generateMockup(opts: {
+  productId: number;
+  variantId: number;
+  placement: string;
+  imageUrl: string;
+  format?: "jpg" | "png";
+}): Promise<{ mockupUrl: string | null; placement: string }> {
+  const { productId, variantId, placement, imageUrl, format = "jpg" } = opts;
+
+  const created = await callPrintful("create-mockup-task", {}, {
+    catalog_product_id: productId,
+    catalog_variant_id: variantId,
+    placement,
+    image_url: imageUrl,
+    format,
+  });
+
+  // V2 returns either { data: { id, status, ... } } or { id, status }.
+  const task = created?.data || created;
+  const taskId = task?.id || task?.task_id;
+  if (!taskId) {
+    console.warn("No task id from create-mockup-task", created);
+    return { mockupUrl: null, placement };
+  }
+
+  // Poll up to ~30s.
+  for (let i = 0; i < 15; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const statusRes = await callPrintful("get-mockup-task", { task_id: String(taskId) });
+    const t = statusRes?.data || statusRes;
+    const status = t?.status;
+    if (status === "completed") {
+      // Extract first mockup_url from any nested shape.
+      const mockups = t?.catalog_variant_mockups || t?.mockups || [];
+      for (const m of mockups) {
+        const placements = m?.mockups || m?.placements || [];
+        for (const p of placements) {
+          if (p?.mockup_url) return { mockupUrl: p.mockup_url, placement };
+          if (p?.url) return { mockupUrl: p.url, placement };
+        }
+        if (m?.mockup_url) return { mockupUrl: m.mockup_url, placement };
+      }
+      return { mockupUrl: null, placement };
+    }
+    if (status === "failed") {
+      console.warn("Mockup task failed:", t);
+      return { mockupUrl: null, placement };
+    }
+  }
+  return { mockupUrl: null, placement };
 }
 
 export async function createOrder(

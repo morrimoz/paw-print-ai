@@ -43,7 +43,35 @@ const STYLE_DIRECTORS: Record<string, { label: string; direction: string }> = {
     direction:
       "modern flat cartoon illustration, bold clean line art, simplified shapes that still preserve the pet's exact markings/breed/colors, vibrant flat fills with subtle cell-shading; references: modern sticker pack illustration, Cartoon Network character design.",
   },
+  "hyperrealistic": {
+    label: "Hyperrealistic Photography",
+    direction:
+      "ultra-photorealistic professional pet portrait photography, razor-sharp focus on the eyes, every individual fur strand visible, natural skin and nose texture, shallow depth of field with creamy bokeh, shot on a Canon EOS R5 with an 85mm f/1.4 prime lens, soft cinematic key light with subtle rim light, color-graded for editorial polish; references: National Geographic animal portraiture, Tim Flach pet photography.",
+  },
 };
+
+/**
+ * Lightweight keyword-based style inference. If the user did NOT pick a style
+ * in the UI, we look at their prompt for obvious style cues (e.g. "watercolor",
+ * "oil painting", "cartoon"). If nothing matches, we fall back to
+ * hyperrealistic so the user gets an impressive default result.
+ */
+function inferStyleFromPrompt(userPrompt: string): string {
+  const p = (userPrompt || "").toLowerCase();
+  const rules: Array<{ id: string; patterns: RegExp[] }> = [
+    { id: "watercolor", patterns: [/water\s?colou?r/, /aquarelle/] },
+    { id: "renaissance-oil", patterns: [/renaissance/, /oil\s?paint/, /baroque/, /classical portrait/] },
+    { id: "pixar", patterns: [/pixar/, /disney/, /3d animat/, /dreamworks/] },
+    { id: "cartoon", patterns: [/cartoon/, /comic/, /anime/, /manga/, /sticker/] },
+    { id: "dramatic-bw", patterns: [/black\s?and\s?white/, /\bb&w\b/, /monochrome/, /noir/] },
+    { id: "humorous", patterns: [/funny/, /humor/, /comedic/, /joke/, /silly/] },
+    { id: "hyperrealistic", patterns: [/hyper\s?real/, /photoreal/, /photograph/, /realistic photo/] },
+  ];
+  for (const r of rules) {
+    if (r.patterns.some((re) => re.test(p))) return r.id;
+  }
+  return "hyperrealistic";
+}
 
 function nowUtcLabel(): string {
   return new Date().toUTCString().replace("GMT", "UTC");

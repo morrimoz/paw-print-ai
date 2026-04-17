@@ -29,8 +29,6 @@ export function MockupPreview({
           src={mockupUrl}
           alt={`${productTitle} preview with your pet art`}
           className="w-full h-full object-contain"
-          referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
         />
       </div>
     );

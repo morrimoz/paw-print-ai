@@ -243,8 +243,6 @@ serve(async (req) => {
           throw new Error("catalog_product_id and catalog_variant_id must be valid integers");
         }
 
-        console.log("create-mockup-task payload", JSON.stringify({ parsedProductId, parsedVariantId, placement, format }));
-
         const taskBody = {
           catalog_product_id: parsedProductId,
           format,

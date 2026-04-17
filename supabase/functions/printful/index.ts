@@ -7,44 +7,8 @@ const corsHeaders = {
 
 const PRINTFUL_BASE = "https://api.printful.com";
 
-type MockupStyleEntry = {
-  placement?: string;
-  technique?: string;
-  mockup_styles?: Array<{ id?: number; view_name?: string; category_name?: string }>;
-};
-
 function normalizePlacement(value: string) {
   return value.trim().toLowerCase();
-}
-
-function chooseMockupStyle(
-  styles: MockupStyleEntry[],
-  placement: string
-): { placement: string; technique: string; mockupStyleId: number } {
-  const targetPlacement = normalizePlacement(placement);
-  const matchingPlacement = styles.find(
-    (entry) => entry.placement && normalizePlacement(entry.placement) === targetPlacement
-  );
-  const fallbackPlacement = matchingPlacement ?? styles[0];
-
-  if (!fallbackPlacement?.placement) {
-    throw new Error("No valid mockup placement returned for this product");
-  }
-
-  const styleId = [...(fallbackPlacement.mockup_styles || [])]
-    .map((style) => Number(style.id))
-    .filter(Number.isInteger)
-    .sort((a, b) => a - b)[0];
-
-  if (!styleId) {
-    throw new Error(`No mockup style id available for placement ${fallbackPlacement.placement}`);
-  }
-
-  return {
-    placement: fallbackPlacement.placement,
-    technique: fallbackPlacement.technique || "digital",
-    mockupStyleId: styleId,
-  };
 }
 
 function extractMockupTask(taskResponse: unknown) {

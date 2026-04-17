@@ -112,6 +112,7 @@ const ProductPage = () => {
     let cancelled = false;
     setMockupUrl(null);
     setMockupLoading(true);
+    setMockupAttempted(false);
     (async () => {
       try {
         const { mockupUrl: url } = await generateMockup({
@@ -124,7 +125,10 @@ const ProductPage = () => {
       } catch (e) {
         console.error("Mockup generation failed:", e);
       } finally {
-        if (!cancelled) setMockupLoading(false);
+        if (!cancelled) {
+          setMockupLoading(false);
+          setMockupAttempted(true);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -253,7 +257,6 @@ const ProductPage = () => {
           <div className="space-y-4">
             <MockupPreview
               artworkUrl={artworkUrl || ""}
-              productImage={selectedVariant?.image || product.image}
               productTitle={product.title}
               mockupUrl={mockupUrl}
               loading={mockupLoading}

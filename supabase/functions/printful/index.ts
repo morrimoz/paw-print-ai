@@ -7,6 +7,89 @@ const corsHeaders = {
 
 const PRINTFUL_BASE = "https://api.printful.com";
 
+type MockupStyleEntry = {
+  placement?: string;
+  technique?: string;
+  mockup_styles?: Array<{ id?: number; view_name?: string; category_name?: string }>;
+};
+
+function normalizePlacement(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function chooseMockupStyle(
+  styles: MockupStyleEntry[],
+  placement: string
+): { placement: string; technique: string; mockupStyleId: number } {
+  const targetPlacement = normalizePlacement(placement);
+  const matchingPlacement = styles.find(
+    (entry) => entry.placement && normalizePlacement(entry.placement) === targetPlacement
+  );
+  const fallbackPlacement = matchingPlacement ?? styles[0];
+
+  if (!fallbackPlacement?.placement) {
+    throw new Error("No valid mockup placement returned for this product");
+  }
+
+  const styleId = [...(fallbackPlacement.mockup_styles || [])]
+    .map((style) => Number(style.id))
+    .filter(Number.isInteger)
+    .sort((a, b) => a - b)[0];
+
+  if (!styleId) {
+    throw new Error(`No mockup style id available for placement ${fallbackPlacement.placement}`);
+  }
+
+  return {
+    placement: fallbackPlacement.placement,
+    technique: fallbackPlacement.technique || "digital",
+    mockupStyleId: styleId,
+  };
+}
+
+function extractMockupTask(taskResponse: unknown) {
+  const payload = taskResponse as Record<string, unknown>;
+  if (Array.isArray(payload?.data)) return payload.data[0] as Record<string, unknown>;
+  return (payload?.data as Record<string, unknown>) || payload;
+}
+
+function extractMockupUrl(taskResponse: unknown): string | null {
+  const task = extractMockupTask(taskResponse);
+  const directCandidates = [
+    task?.mockup_url,
+    task?.url,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+  if (directCandidates[0]) return directCandidates[0];
+
+  const variantMockups = [
+    ...(Array.isArray(task?.catalog_variant_mockups) ? task.catalog_variant_mockups : []),
+    ...(Array.isArray(task?.mockups) ? task.mockups : []),
+  ] as Array<Record<string, unknown>>;
+
+  for (const variantMockup of variantMockups) {
+    const nestedCandidates = [
+      variantMockup?.mockup_url,
+      variantMockup?.url,
+    ].filter((value): value is string => typeof value === "string" && value.length > 0);
+    if (nestedCandidates[0]) return nestedCandidates[0];
+
+    const placements = [
+      ...(Array.isArray(variantMockup?.placements) ? variantMockup.placements : []),
+      ...(Array.isArray(variantMockup?.mockups) ? variantMockup.mockups : []),
+    ] as Array<Record<string, unknown>>;
+
+    for (const placement of placements) {
+      const placementCandidates = [
+        placement?.mockup_url,
+        placement?.url,
+      ].filter((value): value is string => typeof value === "string" && value.length > 0);
+      if (placementCandidates[0]) return placementCandidates[0];
+    }
+  }
+
+  return null;
+}
+
 /**
  * Printful integration with strong rate-limit safety:
  * - Catalog browsing: V1 (/categories, /products, /products/{id}) — V2 catalog is partial.
@@ -97,9 +180,12 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
+    const PRINTFUL_STORE_ID = Deno.env.get("PRINTFUL_STORE_ID");
+
     const headers = {
       Authorization: `Bearer ${PRINTFUL_API_KEY}`,
       "Content-Type": "application/json",
+      ...(PRINTFUL_STORE_ID ? { "X-PF-Store-Id": PRINTFUL_STORE_ID } : {}),
     };
 
     let result: unknown;
@@ -221,41 +307,70 @@ serve(async (req) => {
         const body = await req.json();
         const {
           catalog_product_id,
-          catalog_variant_id,
+          catalog_variant_ids,
           placement,
-          image_url,
+          artwork_url,
           format = "jpg",
         } = body as {
           catalog_product_id: number | string;
-          catalog_variant_id: number | string;
+          catalog_variant_ids: Array<number | string>;
           placement: string;
-          image_url: string;
+          artwork_url: string;
           format?: string;
         };
 
-        if (!catalog_product_id || !catalog_variant_id || !placement || !image_url) {
-          throw new Error("catalog_product_id, catalog_variant_id, placement, image_url are required");
+        if (!catalog_product_id || !Array.isArray(catalog_variant_ids) || !catalog_variant_ids.length || !placement || !artwork_url) {
+          throw new Error("catalog_product_id, catalog_variant_ids, placement, artwork_url are required");
         }
 
         const parsedProductId = Number(catalog_product_id);
-        const parsedVariantId = Number(catalog_variant_id);
-        if (!Number.isInteger(parsedProductId) || !Number.isInteger(parsedVariantId)) {
-          throw new Error("catalog_product_id and catalog_variant_id must be valid integers");
+        const parsedVariantIds = catalog_variant_ids
+          .map((variantId) => Number(variantId))
+          .filter(Number.isInteger);
+        if (!Number.isInteger(parsedProductId) || parsedVariantIds.length === 0) {
+          throw new Error("catalog_product_id and catalog_variant_ids must be valid integers");
         }
 
+        const stylesKey = `mockup-styles-${parsedProductId}`;
+        const stylesResponse = await dedupe(stylesKey, async () => {
+          const cached = getCache<{ data: MockupStyleEntry[]; supported: boolean; placements: string[] }>(stylesKey);
+          if (cached) return cached;
+
+          const res = await pfFetch(
+            `${PRINTFUL_BASE}/v2/catalog-products/${parsedProductId}/mockup-styles`,
+            {},
+            headers
+          );
+          if (!res.ok) {
+            throw new Error(`Printful mockup-styles failed [${res.status}]: ${await res.text()}`);
+          }
+
+          const json = await res.json();
+          const data = Array.isArray(json?.data) ? json.data : [];
+          const normalized = {
+            data,
+            supported: data.length > 0,
+            placements: [...new Set(data.map((entry: MockupStyleEntry) => entry.placement).filter(Boolean))] as string[],
+          };
+          setCache(stylesKey, normalized, 24 * 60 * 60 * 1000);
+          return normalized;
+        });
+
+        const chosenStyle = chooseMockupStyle(stylesResponse.data || [], placement);
+
         const taskBody = {
-          catalog_product_id: parsedProductId,
           format,
           products: [{
             source: "catalog",
+            mockup_style_ids: [chosenStyle.mockupStyleId],
             catalog_product_id: parsedProductId,
-            catalog_variant_id: parsedVariantId,
+            catalog_variant_ids: parsedVariantIds,
             placements: [{
-              placement,
-              technique: "digital",
+              placement: chosenStyle.placement,
+              technique: chosenStyle.technique,
               layers: [{
-                type: "image",
-                url: image_url,
+                type: "file",
+                url: artwork_url,
               }],
             }],
           }],

@@ -149,7 +149,6 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <MockupPreview
           artworkUrl={artworkUrl}
-          productImage={selectedVariant?.image || product.image}
           productTitle={product.title}
           mockupUrl={mockupUrl}
           loading={mockupLoading}

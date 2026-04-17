@@ -164,6 +164,10 @@
   }
 
   /* Animated SVG grain overlay - slow drift on loop */
+  .grain-overlay {
+    position: relative;
+    overflow: hidden;
+  }
   .grain-overlay::after {
     content: "";
     position: absolute;

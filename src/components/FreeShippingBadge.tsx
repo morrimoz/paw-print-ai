@@ -47,17 +47,19 @@ export function FreeShippingBadge({ variant = "pill", className }: FreeShippingB
     );
   }
 
-  // pill (default)
+  // pill (default) — outlined / ghost style to contrast with filled promo pills
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 backdrop-blur",
+        "inline-flex items-center gap-2 rounded-md border border-dashed border-foreground/25 bg-background/40 px-4 py-2 backdrop-blur",
         className,
       )}
     >
-      <Truck className="h-4 w-4 text-primary" />
-      <span className="text-sm font-medium text-foreground">
-        <span className="text-primary font-bold">Free worldwide shipping</span> on all orders
+      <Truck className="h-4 w-4 text-foreground/70" />
+      <span className="text-sm font-medium text-foreground/90 tracking-wide">
+        Free worldwide shipping
+        <span className="mx-2 text-foreground/30">·</span>
+        <span className="uppercase text-xs font-bold text-foreground/60">on all orders</span>
       </span>
     </div>
   );

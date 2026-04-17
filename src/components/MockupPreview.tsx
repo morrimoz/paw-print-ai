@@ -6,6 +6,8 @@ interface MockupPreviewProps {
   productTitle: string;
   mockupUrl?: string | null;
   loading?: boolean;
+  /** True only after we tried to generate a mockup and got nothing back. */
+  unavailable?: boolean;
 }
 
 /**
@@ -19,6 +21,7 @@ export function MockupPreview({
   productTitle,
   mockupUrl,
   loading,
+  unavailable,
 }: MockupPreviewProps) {
   // Real Printful mockup ready - render it.
   if (mockupUrl) {
@@ -53,7 +56,7 @@ export function MockupPreview({
     );
   }
 
-  // Mockup unavailable - show bare product photo with explainer (no overlay).
+  // No mockup yet (no artwork applied, or mockup truly unavailable).
   return (
     <div className="relative aspect-square rounded-2xl overflow-hidden glass-card">
       {productImage ? (
@@ -67,11 +70,13 @@ export function MockupPreview({
           <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
         </div>
       )}
-      <div className="absolute bottom-3 left-3 right-3 glass-card-strong rounded-lg p-2 text-center">
-        <p className="text-[11px] text-muted-foreground">
-          Mockup preview unavailable for this product - your art will be applied at print time.
-        </p>
-      </div>
+      {unavailable && artworkUrl && (
+        <div className="absolute bottom-3 left-3 right-3 glass-card-strong rounded-lg p-2 text-center">
+          <p className="text-[11px] text-muted-foreground">
+            Mockup preview unavailable for this product - your art will be applied at print time.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

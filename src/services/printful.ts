@@ -104,6 +104,31 @@ export interface PrintfulProductDetail {
   variants: PrintfulVariant[];
 }
 
+export interface PrintfulProductOptionValue {
+  value?: string | boolean;
+  title?: string;
+  label?: string;
+  key?: string;
+}
+
+export interface PrintfulProductOption {
+  name: string;
+  type?: string;
+  title?: string;
+  techniques?: string[];
+  values?: Array<string | PrintfulProductOptionValue>;
+}
+
+export interface PrintfulCatalogProductDesignSpec {
+  product_options?: PrintfulProductOption[];
+  placements?: unknown[];
+  techniques?: unknown[];
+}
+
+export interface PrintfulExtendedProductDetail extends PrintfulProductDetail {
+  designSpec?: PrintfulCatalogProductDesignSpec;
+}
+
 /** V2 mockup style group (one per placement). */
 export interface MockupStyleGroup {
   placement: string;
@@ -191,14 +216,27 @@ export async function fetchProducts(categoryId?: number): Promise<PrintfulProduc
   return data.result || [];
 }
 
-export async function fetchProductDetail(productId: number): Promise<PrintfulProductDetail> {
+export async function fetchProductDetail(productId: number): Promise<PrintfulExtendedProductDetail> {
   const key = `product-${productId}`;
-  const cached = getCached<{ result: PrintfulProductDetail }>(key);
-  if (cached) return cached.result;
+  const cached = getCached<{ result: PrintfulExtendedProductDetail }>(key);
+  if (cached?.result) {
+    return {
+      ...cached.result,
+      designSpec: cached.result.designSpec || { product_options: [] },
+    };
+  }
 
   const data = await callPrintful("product", { product_id: String(productId) });
   setCache(key, data);
-  return data.result;
+
+  const result = data.result as PrintfulExtendedProductDetail;
+
+  return {
+    ...result,
+    designSpec: result?.designSpec || {
+      product_options: [],
+    },
+  };
 }
 
 // =================== V2 MOCKUPS ===================
@@ -280,6 +318,90 @@ function resolveMockupConfig(
   };
 }
 
+function normalizeTechnique(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+export function getRelevantProductOptions(
+  detail: PrintfulExtendedProductDetail,
+  placement: string,
+  variantId: number,
+): PrintfulProductOption[] {
+  const allOptions = detail.designSpec?.product_options || [];
+  if (!allOptions.length || !detail.product?.id) return [];
+
+  const styles: MockupStylesResponse | null = getCached<MockupStylesResponse>(`mockup-styles-${detail.product.id}`);
+
+  if (!styles) return allOptions;
+
+  const config = resolveMockupConfig(styles, placement, variantId);
+  if (!config) return allOptions;
+
+  const normalizedTechnique = normalizeTechnique(config.technique);
+
+  return allOptions.filter((option) => {
+    const optionTechniques = Array.isArray(option.techniques)
+      ? option.techniques.map((t) => normalizeTechnique(String(t)))
+      : [];
+
+    if (optionTechniques.length === 0) return true;
+    return optionTechniques.includes(normalizedTechnique);
+  });
+}
+
+export function getDefaultProductOptionSelections(
+  options: PrintfulProductOption[],
+  technique?: string,
+): Record<string, unknown> {
+  const normalizedTechnique = technique ? normalizeTechnique(technique) : null;
+  const selections: Record<string, unknown> = {};
+
+  for (const option of options) {
+    if (!option?.name) continue;
+
+    const optionTechniques = Array.isArray(option.techniques)
+      ? option.techniques.map((t) => normalizeTechnique(String(t)))
+      : [];
+
+    if (normalizedTechnique && optionTechniques.length > 0 && !optionTechniques.includes(normalizedTechnique)) {
+      continue;
+    }
+
+    const values = Array.isArray(option.values) ? option.values : [];
+
+    if (option.name === "stitch_color") {
+      const autoValue = values.find((value) => {
+        if (typeof value === "string") return value.toLowerCase() === "auto";
+        const candidate = value?.value || value?.key || value?.title || value?.label || "";
+        return String(candidate).toLowerCase() === "auto";
+      });
+
+      if (autoValue) {
+        selections[option.name] =
+          typeof autoValue === "string"
+            ? autoValue
+            : autoValue.value || autoValue.key || autoValue.title || autoValue.label;
+        continue;
+      }
+    }
+
+    const firstValue = values[0];
+    if (firstValue !== undefined) {
+      selections[option.name] =
+        typeof firstValue === "string"
+          ? firstValue
+          : firstValue.value || firstValue.key || firstValue.title || firstValue.label;
+      continue;
+    }
+
+    if (option.type === "boolean") {
+      selections[option.name] = true;
+    }
+  }
+
+  return selections;
+}
+
 /** Create a mockup task and poll until completed. */
 export async function generateMockup(opts: {
   productId: number;
@@ -287,8 +409,9 @@ export async function generateMockup(opts: {
   placement: string;
   imageUrl: string;
   format?: "jpg" | "png";
+  productOptions?: Record<string, unknown>;
 }): Promise<{ mockupUrl: string | null; placement: string }> {
-  const { productId, variantId, placement, imageUrl, format = "jpg" } = opts;
+  const { productId, variantId, placement, imageUrl, format = "jpg", productOptions } = opts;
 
   const styles = await fetchMockupStyles(productId);
   const config = resolveMockupConfig(styles, placement, variantId);
@@ -297,6 +420,10 @@ export async function generateMockup(opts: {
     console.warn("No valid Printful mockup config found", { productId, variantId, placement });
     return { mockupUrl: null, placement };
   }
+
+  const detail = await fetchProductDetail(productId);
+  const relevantOptions = getRelevantProductOptions(detail, placement, variantId);
+  const defaultSelections = getDefaultProductOptionSelections(relevantOptions, config.technique);
 
   const created = await callPrintful(
     "create-mockup-task",
@@ -309,6 +436,10 @@ export async function generateMockup(opts: {
       format,
       mockup_style_id: config.mockupStyleId,
       technique: config.technique,
+      product_options: {
+        ...defaultSelections,
+        ...(productOptions || {}),
+      },
     },
   );
 

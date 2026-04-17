@@ -11,6 +11,87 @@ function normalizePlacement(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeTechnique(value: string) {
+  return value.trim().toLowerCase();
+}
+
+type CatalogProductOptionValue =
+  | string
+  | boolean
+  | {
+      value?: string | boolean;
+      title?: string;
+      label?: string;
+      key?: string;
+    };
+
+type CatalogProductOption = {
+  name?: string;
+  techniques?: string[];
+  type?: string;
+  values?: CatalogProductOptionValue[];
+};
+
+function normalizeOptionValue(value: CatalogProductOptionValue): string | boolean | null {
+  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (!value || typeof value !== "object") return null;
+
+  if (typeof value.value === "string" || typeof value.value === "boolean") return value.value;
+  if (typeof value.key === "string") return value.key;
+  if (typeof value.label === "string") return value.label;
+  if (typeof value.title === "string") return value.title;
+
+  return null;
+}
+
+function pickDefaultProductOptionValue(option: CatalogProductOption): string | boolean | null {
+  const values = Array.isArray(option.values) ? option.values : [];
+
+  if (option.name === "stitch_color") {
+    const autoValue = values.find((value) => {
+      const normalized = normalizeOptionValue(value);
+      return typeof normalized === "string" && normalized.toLowerCase() === "auto";
+    });
+    if (autoValue !== undefined) return normalizeOptionValue(autoValue);
+  }
+
+  if (values.length > 0) {
+    return normalizeOptionValue(values[0]);
+  }
+
+  if (option.type === "boolean") return true;
+
+  return null;
+}
+
+function buildRequiredProductOptions(
+  productOptions: CatalogProductOption[],
+  technique: string,
+): Array<{ name: string; value: unknown }> {
+  const normalizedTechnique = normalizeTechnique(technique);
+
+  return productOptions
+    .filter((option) => {
+      if (!option?.name) return false;
+
+      const optionTechniques = Array.isArray(option.techniques)
+        ? option.techniques.map((t) => normalizeTechnique(String(t)))
+        : [];
+
+      // If techniques are specified, only include options relevant to the chosen technique.
+      if (optionTechniques.length > 0 && !optionTechniques.includes(normalizedTechnique)) {
+        return false;
+      }
+
+      const value = pickDefaultProductOptionValue(option);
+      return value !== null && value !== undefined;
+    })
+    .map((option) => ({
+      name: String(option.name),
+      value: pickDefaultProductOptionValue(option),
+    }));
+}
+
 function extractMockupTask(taskResponse: unknown) {
   const payload = taskResponse as Record<string, unknown>;
   if (Array.isArray(payload?.data)) return payload.data[0] as Record<string, unknown>;
@@ -200,13 +281,40 @@ serve(async (req) => {
           result = cached;
           break;
         }
+
         result = await dedupe(key, async () => {
-          const res = await pfFetch(`${PRINTFUL_BASE}/products/${productId}`, {}, headers);
-          if (!res.ok) throw new Error(`Printful product failed [${res.status}]: ${await res.text()}`);
-          const json = await res.json();
-          setCache(key, json, 6 * 60 * 60 * 1000);
-          return json;
+          const [v1Res, v2Res] = await Promise.all([
+            pfFetch(`${PRINTFUL_BASE}/products/${productId}`, {}, headers),
+            pfFetch(`${PRINTFUL_BASE}/v2/catalog-products/${productId}`, {}, headers),
+          ]);
+
+          if (!v1Res.ok) {
+            throw new Error(`Printful product failed [${v1Res.status}]: ${await v1Res.text()}`);
+          }
+          if (!v2Res.ok) {
+            throw new Error(`Printful catalog product failed [${v2Res.status}]: ${await v2Res.text()}`);
+          }
+
+          const v1Json = await v1Res.json();
+          const v2Json = await v2Res.json();
+          const v2Product = (v2Json?.data || v2Json) as Record<string, unknown>;
+
+          const enriched = {
+            ...v1Json,
+            result: {
+              ...(v1Json?.result || {}),
+              designSpec: {
+                product_options: Array.isArray(v2Product?.product_options) ? v2Product.product_options : [],
+                placements: Array.isArray(v2Product?.placements) ? v2Product.placements : [],
+                techniques: Array.isArray(v2Product?.techniques) ? v2Product.techniques : [],
+              },
+            },
+          };
+
+          setCache(key, enriched, 6 * 60 * 60 * 1000);
+          return enriched;
         });
+
         break;
       }
 
@@ -286,7 +394,7 @@ serve(async (req) => {
           mockup_style_id,
           technique,
           store_id,
-          product_options: clientProductOptions,
+          product_options,
         } = body as {
           catalog_product_id: number | string;
           catalog_variant_ids: Array<number | string>;
@@ -322,13 +430,16 @@ serve(async (req) => {
           const stylesJson = await stylesRes.json();
           const groups = stylesJson?.data || [];
 
+          const normalizedPlacement = normalizePlacement(placement);
+
           const matchingGroup = Array.isArray(groups)
             ? groups.find(
                 (g: {
                   placement?: string;
+                  technique?: string;
                   mockup_styles?: Array<{ id: number; restricted_to_variants?: number[] }>;
                 }) => {
-                  if (g.placement !== placement) return false;
+                  if (!g.placement || normalizePlacement(g.placement) !== normalizedPlacement) return false;
 
                   const styles = g.mockup_styles || [];
                   if (styles.length === 0) return false;
@@ -369,101 +480,70 @@ serve(async (req) => {
           }
         }
 
+        const catalogProductRes = await pfFetch(
+          `${PRINTFUL_BASE}/v2/catalog-products/${catalog_product_id}`,
+          {},
+          headers,
+        );
+
+        if (!catalogProductRes.ok) {
+          throw new Error(
+            `Printful catalog product failed [${catalogProductRes.status}]: ${await catalogProductRes.text()}`,
+          );
+        }
+
+        const catalogProductJson = await catalogProductRes.json();
+        const catalogProduct = (catalogProductJson?.data || catalogProductJson) as Record<string, unknown>;
+
+        const availableProductOptions = Array.isArray(catalogProduct?.product_options)
+          ? (catalogProduct.product_options as CatalogProductOption[])
+          : [];
+
+        const defaultProductOptions = buildRequiredProductOptions(availableProductOptions, String(resolvedTechnique));
+
+        const uiProductOptions = Object.entries(product_options || {})
+          .filter(([name, value]) => name && value !== null && value !== undefined && value !== "")
+          .map(([name, value]) => ({ name, value }));
+
+        const mergedProductOptionsMap = new Map<string, { name: string; value: unknown }>();
+
+        for (const option of defaultProductOptions) {
+          mergedProductOptionsMap.set(option.name, option);
+        }
+        for (const option of uiProductOptions) {
+          mergedProductOptionsMap.set(option.name, option);
+        }
+
+        const resolvedProductOptions = Array.from(mergedProductOptionsMap.values());
+
         const taskHeaders: HeadersInit = { ...headers };
         if (store_id) {
           taskHeaders["X-PF-Store-Id"] = String(store_id);
         }
 
-        // Fetch the V2 catalog product to discover required product_options
-        // (e.g. stitch_color for embroidery products). We resolve sensible
-        // defaults from the allowed values so the user doesn't have to pick.
-        const resolvedProductOptions: Record<string, unknown> = {
-          ...(clientProductOptions || {}),
-        };
-        try {
-          const productKey = `v2-catalog-product-${catalog_product_id}`;
-          let v2Product = getCache<Record<string, unknown>>(productKey);
-          if (!v2Product) {
-            const v2Res = await pfFetch(
-              `${PRINTFUL_BASE}/v2/catalog-products/${catalog_product_id}`,
-              {},
-              headers,
-            );
-            if (v2Res.ok) {
-              const v2Json = await v2Res.json();
-              v2Product = ((v2Json?.data as Record<string, unknown>) || v2Json) as Record<string, unknown>;
-              if (v2Product) setCache(productKey, v2Product, 24 * 60 * 60 * 1000);
-            }
-          }
-
-          const productOptionsSpec = (v2Product?.product_options ||
-            (v2Product as { data?: { product_options?: unknown } })?.data?.product_options ||
-            []) as Array<Record<string, unknown>>;
-
-          if (Array.isArray(productOptionsSpec)) {
-            for (const opt of productOptionsSpec) {
-              const name = opt?.name as string | undefined;
-              if (!name) continue;
-              if (resolvedProductOptions[name] !== undefined) continue;
-
-              const required = !!opt?.required;
-              if (!required) continue;
-
-              const defaultValue =
-                (opt?.default_value as unknown) ??
-                (opt?.default as unknown) ??
-                null;
-
-              const valuesField = opt?.values ?? opt?.choices ?? opt?.allowed_values;
-              let firstAllowed: unknown = null;
-              if (Array.isArray(valuesField) && valuesField.length > 0) {
-                const first = valuesField[0];
-                firstAllowed =
-                  typeof first === "object" && first !== null
-                    ? (first as { value?: unknown; id?: unknown }).value ??
-                      (first as { id?: unknown }).id
-                    : first;
-              } else if (valuesField && typeof valuesField === "object") {
-                const keys = Object.keys(valuesField as Record<string, unknown>);
-                if (keys.length > 0) firstAllowed = keys[0];
-              }
-
-              const chosen = defaultValue ?? firstAllowed;
-              if (chosen !== null && chosen !== undefined) {
-                resolvedProductOptions[name] = chosen;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Failed to resolve product_options from v2 catalog product:", e);
-        }
-
-        const productEntry: Record<string, unknown> = {
-          source: "catalog",
-          mockup_style_ids: [Number(resolvedMockupStyleId)],
-          catalog_product_id: Number(catalog_product_id),
-          catalog_variant_ids: [Number(variantId)],
-          placements: [
+        const taskBody = {
+          format,
+          products: [
             {
-              placement,
-              technique: resolvedTechnique,
-              layers: [
+              source: "catalog",
+              mockup_style_ids: [Number(resolvedMockupStyleId)],
+              catalog_product_id: Number(catalog_product_id),
+              catalog_variant_ids: [Number(variantId)],
+              product_options: resolvedProductOptions,
+              placements: [
                 {
-                  type: "file",
-                  url: image_url,
+                  placement,
+                  technique: resolvedTechnique,
+                  layers: [
+                    {
+                      type: "file",
+                      url: image_url,
+                    },
+                  ],
                 },
               ],
             },
           ],
-        };
-
-        if (Object.keys(resolvedProductOptions).length > 0) {
-          productEntry.product_options = resolvedProductOptions;
-        }
-
-        const taskBody = {
-          format,
-          products: [productEntry],
         };
 
         const taskRes = await pfFetch(
@@ -474,7 +554,17 @@ serve(async (req) => {
 
         if (!taskRes.ok) {
           const errText = await taskRes.text();
-          console.error("v2 create-mockup-task failed:", taskRes.status, errText, JSON.stringify(taskBody));
+          console.error(
+            "v2 create-mockup-task failed:",
+            taskRes.status,
+            errText,
+            JSON.stringify({
+              taskBody,
+              resolvedTechnique,
+              resolvedMockupStyleId,
+              resolvedProductOptions,
+            }),
+          );
           throw new Error(`Mockup task creation failed [${taskRes.status}]: ${errText}`);
         }
 

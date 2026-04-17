@@ -1,7 +1,7 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { fetchProducts, checkMockupSupport, fetchProductDetail } from "@/services/printful";
+import { fetchProducts, fetchProductDetail } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
 import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
@@ -10,8 +10,6 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 // Module-level cache so we don't refetch the same product detail twice in a session.
 const startingPriceCache = new Map<number, string>();
-// Module-level cache for mockup-support probes (very rate-limit-sensitive).
-const mockupSupportedCache: { products: PrintfulProduct[] } = { products: [] };
 
 interface UICategory {
   id: string;
@@ -35,57 +33,10 @@ const Gallery = () => {
   const [productsByCat, setProductsByCat] = useState<Record<string, PrintfulProduct[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>(mockupSupportedCache.products);
-  const [mockupLoading, setMockupLoading] = useState(mockupSupportedCache.products.length === 0);
   const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
   const [visibleCount, setVisibleCount] = useState(12);
   const gridRef = useScrollReveal<HTMLDivElement>(".reveal");
   const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // Build the live-mockup carousel. Heavily rate-limit-aware:
-  // probe sequentially with delays, and cache results module-wide.
-  useEffect(() => {
-    if (mockupSupportedCache.products.length > 0) return;
-    let cancelled = false;
-    (async () => {
-      setMockupLoading(true);
-      try {
-        const candidates: PrintfulProduct[] = [];
-        for (const catId of [21, 112, 16, 15]) {
-          try {
-            const prods = await fetchProducts(catId);
-            candidates.push(...prods.filter((p) => !p.is_discontinued).slice(0, 4));
-          } catch { /* skip */ }
-        }
-        const seen = new Set<number>();
-        const unique = candidates.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
-
-        // Sequential probing with a short delay — mockup-styles is per-product
-        // and can rate-limit us hard if we burst.
-        const supported: PrintfulProduct[] = [];
-        for (const p of unique) {
-          if (cancelled) return;
-          if (supported.length >= 10) break;
-          try {
-            const ok = await checkMockupSupport(p.id);
-            if (ok) {
-              supported.push(p);
-              // Update progressively so the user sees something fast.
-              if (!cancelled) setMockupSupported([...supported]);
-            }
-          } catch { /* skip */ }
-          await new Promise((r) => setTimeout(r, 350));
-        }
-        if (!cancelled) {
-          mockupSupportedCache.products = supported;
-          setMockupSupported(supported);
-        }
-      } finally {
-        if (!cancelled) setMockupLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,58 +159,6 @@ const Gallery = () => {
                 </button>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* Live Mockup carousel - compact callout */}
-      <section className="pt-6 md:pt-8 pb-2">
-        <div className="container">
-          <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur px-4 py-3">
-            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-              <div className="flex items-center gap-2 min-w-0">
-                <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                <h2 className="font-heading text-xs font-semibold uppercase tracking-wider text-foreground">
-                  See your art on these
-                </h2>
-                <span className="hidden sm:inline text-xs text-muted-foreground truncate">
-                  · live photo-mockup preview
-                </span>
-              </div>
-            </div>
-            {mockupLoading && mockupSupported.length === 0 ? (
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-28">
-                    <div className="aspect-square rounded-lg bg-muted animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : mockupSupported.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No mockup-ready products right now.</p>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory">
-                {mockupSupported.map((p) => (
-                  <Link
-                    key={p.id}
-                    to={`/product/${p.id}`}
-                    className="flex-shrink-0 w-28 snap-start group"
-                  >
-                    <div className="aspect-square rounded-lg overflow-hidden glass-card card-lift ring-gradient-hover">
-                      <img
-                        src={p.image}
-                        alt={p.title}
-                        className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-110"
-                        loading="lazy"
-                      />
-                    </div>
-                    <p className="mt-1.5 text-[11px] font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                      {p.title}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </section>

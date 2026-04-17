@@ -215,7 +215,7 @@ const CreateArt = () => {
                   className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 card-lift ${
                     isSelected
                       ? "border-primary shadow-lg ring-2 ring-primary/30"
-                      : "border-border hover:border-primary/50"
+                      : "border-border md:hover:border-primary/50"
                   }`}
                 >
                   {/* Default state - the style reference image */}
@@ -225,15 +225,15 @@ const CreateArt = () => {
                     className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
                       isSelected
                         ? "opacity-100 scale-100"
-                        : "opacity-100 scale-100 group-hover:opacity-0 group-hover:scale-105"
+                        : "opacity-100 scale-100 md:group-hover:opacity-0 md:group-hover:scale-105"
                     }`}
                     loading="lazy"
                   />
 
-                  {/* Hover state - grainy gradient mesh + icon (hidden when selected) */}
+                  {/* Hover state - grainy gradient mesh + icon (hidden when selected, desktop only) */}
                   <div
                     className={`absolute inset-0 bg-mesh-card transition-opacity duration-500 ${
-                      isSelected ? "opacity-0" : "opacity-0 group-hover:opacity-100"
+                      isSelected ? "opacity-0" : "opacity-0 md:group-hover:opacity-100"
                     }`}
                   >
                     <div className="absolute inset-0 grain-overlay" />
@@ -245,7 +245,7 @@ const CreateArt = () => {
                   {/* Bottom gradient for label readability over image */}
                   <div
                     className={`absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-500 ${
-                      isSelected ? "opacity-100" : "opacity-100 group-hover:opacity-0"
+                      isSelected ? "opacity-100" : "opacity-100 md:group-hover:opacity-0"
                     }`}
                   />
 
@@ -255,7 +255,7 @@ const CreateArt = () => {
                       className={`text-sm font-semibold transition-colors duration-300 ${
                         isSelected
                           ? "text-white drop-shadow-md"
-                          : "text-white drop-shadow-md group-hover:text-foreground group-hover:drop-shadow-none"
+                          : "text-white drop-shadow-md md:group-hover:text-foreground md:group-hover:drop-shadow-none"
                       }`}
                     >
                       {style.name}

@@ -64,6 +64,8 @@ export function MockupPreview({
           src={productImage}
           alt={productTitle}
           className="w-full h-full object-contain p-6"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-muted">

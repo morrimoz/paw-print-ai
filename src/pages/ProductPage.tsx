@@ -91,15 +91,19 @@ const ProductPage = () => {
   useEffect(() => {
     if (!product || !selectedVariant) return;
     let cancelled = false;
-      fetchPlacementsForVariant(product.id, selectedVariant.id)
-        .then((p) => {
+    fetchPlacementsForVariant(product.id, selectedVariant.id)
+      .then((p) => {
         if (cancelled) return;
-          const uniquePlacements = [...new Set(p)];
-          setPlacements(uniquePlacements);
-          setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : (uniquePlacements[0] || "")));
+        const uniquePlacements = [...new Set(p)];
+        setPlacements(uniquePlacements);
+        setSelectedPlacement((prev) => (uniquePlacements.includes(prev) ? prev : (uniquePlacements[0] || "")));
       })
-      .catch(() => { if (!cancelled) setPlacements([]); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) setPlacements([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [product?.id, selectedVariant?.id]);
 
   // Generate Printful V2 mockup whenever variant OR placement changes.

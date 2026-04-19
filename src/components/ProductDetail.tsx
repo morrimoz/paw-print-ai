@@ -194,16 +194,23 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <MockupPreview
-          artworkUrl={artworkUrl}
-          productTitle={product.title}
-          productImage={displayedImage}
-          mockupUrl={mockupUrl}
-          loading={mockupLoading}
-          unavailable={mockupAttempted && !mockupUrl}
-          canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
-          onPreviewMockup={handlePreviewMockup}
-        />
+        <div className="space-y-3">
+          <MockupPreview
+            artworkUrl={artworkUrl}
+            productTitle={product.title}
+            productImage={displayedImage}
+            mockupUrl={mockupUrl}
+            loading={mockupLoading}
+            unavailable={mockupAttempted && !mockupUrl}
+            canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
+            onPreviewMockup={handlePreviewMockup}
+          />
+          <ProductImageGallery
+            images={mockupUrl ? [mockupUrl, ...galleryImages] : galleryImages}
+            selected={mockupUrl || displayedImage}
+            onSelect={(img) => setManualImage(img)}
+          />
+        </div>
 
         <div className="space-y-6">
           <div>
@@ -294,7 +301,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           {product.description && (
             <div className="pt-4 border-t border-border">
               <h3 className="text-sm font-semibold text-foreground mb-2">Description</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+              <ProductDescription description={product.description} />
             </div>
           )}
         </div>

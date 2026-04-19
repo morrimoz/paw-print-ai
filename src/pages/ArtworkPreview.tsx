@@ -130,7 +130,7 @@ const ArtworkPreview = () => {
                     <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                       {product.title}
                     </h3>
-                    <PriceDisplay basePrice="15.00" prefix="From" className="text-xs text-muted-foreground mt-1 block" />)
+                    <PriceDisplay basePrice="15.00" prefix="From" className="text-xs text-muted-foreground mt-1 block" />
                   </Link>
                 ))}
               </div>

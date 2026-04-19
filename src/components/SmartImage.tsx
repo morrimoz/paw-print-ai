@@ -4,22 +4,22 @@ import { cn } from "@/lib/utils";
 interface SmartImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   /** Tailwind classes applied to the wrapper holding both image and shimmer. */
   wrapperClassName?: string;
-  /** Aspect ratio class used ONLY while the image is loading, so the shimmer
-   *  has the same shape as the eventual image. Removed once loaded so the
-   *  wrapper collapses to the natural image height (no extra whitespace). */
+  /** Aspect ratio class (e.g. `aspect-[4/3]`). Held BOTH while loading and
+   *  after load so the placeholder and the final image occupy exactly the
+   *  same box — no layout shift, no extra whitespace. Pass the real image
+   *  ratio for a perfect match. */
   aspectClassName?: string;
   /** Override placeholder rounding/look. Defaults to inherit from wrapper. */
   placeholderClassName?: string;
 }
 
 /**
- * Image with an animated gradient shimmer placeholder that fades into
+ * Image with an animated gradient shimmer placeholder that crossfades into
  * the actual image on load.
  *
- * Sizing strategy: while loading, the wrapper enforces `aspectClassName` so
- * the shimmer reserves the right shape. Once the image is loaded, that
- * aspect class is dropped and the wrapper shrink-wraps the actual image,
- * preventing extra whitespace below it.
+ * The wrapper keeps a fixed aspect ratio so the shimmer and the final image
+ * occupy the exact same space. The image is absolutely positioned and fades
+ * in; the shimmer fades out. No layout shift, no trailing whitespace.
  */
 export function SmartImage({
   wrapperClassName,
@@ -35,19 +35,18 @@ export function SmartImage({
     <div
       className={cn(
         "relative overflow-hidden",
-        !loaded && aspectClassName,
+        aspectClassName,
         wrapperClassName,
       )}
     >
-      {!loaded && (
-        <div
-          className={cn(
-            "absolute inset-0 shimmer-loader",
-            placeholderClassName,
-          )}
-          aria-hidden="true"
-        />
-      )}
+      <div
+        className={cn(
+          "absolute inset-0 shimmer-loader transition-opacity duration-700 ease-out",
+          loaded ? "opacity-0" : "opacity-100",
+          placeholderClassName,
+        )}
+        aria-hidden="true"
+      />
       <img
         {...imgProps}
         onLoad={(e) => {
@@ -55,11 +54,8 @@ export function SmartImage({
           onLoad?.(e);
         }}
         className={cn(
-          "img-fade-in relative z-10 block",
-          // While loading, fill the aspect-ratio box so the image renders into
-          // the placeholder's space; once loaded, switch to natural sizing.
-          !loaded ? "absolute inset-0 w-full h-full" : "w-full h-auto",
-          loaded && "is-loaded",
+          "absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out",
+          loaded ? "opacity-100" : "opacity-0",
           className,
         )}
       />

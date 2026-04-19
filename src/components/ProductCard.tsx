@@ -1,5 +1,5 @@
-import { getStartingPrice } from "@/utils/pricing";
 import type { PrintfulProduct } from "@/services/printful";
+import { PriceDisplay } from "./PriceDisplay";
 
 interface ProductCardProps {
   product: PrintfulProduct;
@@ -35,9 +35,7 @@ export function ProductCard({ product, artworkUrl, onPreview }: ProductCardProps
         <p className="text-xs text-muted-foreground mb-2">
           {product.brand && `${product.brand} · `}{product.variant_count} variants
         </p>
-        <span className="text-sm font-bold text-primary">
-          From {getStartingPrice(["15.00"])}
-        </span>
+        <PriceDisplay basePrice="15.00" prefix="From" className="text-sm font-bold text-primary" />
       </div>
     </div>
   );

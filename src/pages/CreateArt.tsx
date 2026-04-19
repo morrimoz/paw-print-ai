@@ -12,6 +12,7 @@ import styleRenaissance from "@/assets/style-renaissance.webp";
 import styleHyperrealistic from "@/assets/style-hyperrealistic.png";
 import styleHumorous from "@/assets/style-humorous.webp";
 import styleCartoon from "@/assets/style-cartoon.webp";
+import { GeneratingOverlay } from "@/components/GeneratingOverlay";
 
 const artStyles = [
   { id: "dramatic-bw", name: "Dramatic B&W", image: styleBlackWhite, Icon: Contrast },
@@ -147,8 +148,11 @@ const CreateArt = () => {
 
   return (
     <DashboardLayout>
+      {/* ASMR generating overlay - hides everything else while AI works */}
+      {generating && <GeneratingOverlay sourceUrl={previewUrl} />}
+
       {/* Full-page drag overlay */}
-      {isDraggingOver && (
+      {isDraggingOver && !generating && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center">
           <div className="flex flex-col items-center gap-4 p-12 rounded-2xl border-2 border-dashed border-primary glass-card-strong">
             <ImagePlus className="h-16 w-16 text-primary" />

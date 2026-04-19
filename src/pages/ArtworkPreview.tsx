@@ -5,7 +5,7 @@ import { Download, ShoppingBag, Image, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { fetchProducts } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
-import { getStartingPrice } from "@/utils/pricing";
+import { PriceDisplay } from "@/components/PriceDisplay";
 
 const ArtworkPreview = () => {
   const location = useLocation();
@@ -79,10 +79,7 @@ const ArtworkPreview = () => {
           </div>
           {artwork && (
             <div className="p-6 text-center">
-              <p className="text-sm text-muted-foreground mb-1">
-                Style: <span className="font-medium text-foreground capitalize">{artwork.style}</span>
-              </p>
-              <p className="text-xs uppercase tracking-wider text-primary font-semibold mt-4 mb-2">
+              <p className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">
                 Next step
               </p>
               <Button variant="hero" size="xl" className="w-full sm:w-auto px-10" asChild>
@@ -133,7 +130,7 @@ const ArtworkPreview = () => {
                     <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                       {product.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">From {getStartingPrice(["15.00"])}</p>
+                    <PriceDisplay basePrice="15.00" prefix="From" className="text-xs text-muted-foreground mt-1 block" />
                   </Link>
                 ))}
               </div>

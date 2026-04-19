@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { MockupPreview } from "./MockupPreview";
-import { getDisplayPrice, getMarkedUpPrice } from "@/utils/pricing";
+import { PriceDisplay } from "./PriceDisplay";
+import { getMarkedUpPrice } from "@/utils/pricing";
 import { fetchProductDetail, fetchPlacementsForVariant, generateMockup } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
@@ -63,6 +64,17 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
 
   const selectedVariant = getSelectedVariant();
 
+  // Pick the best image to show: prefer a variant image matching the selected color
+  // (any size with that color works since the color image is usually shared).
+  const displayedImage = useMemo(() => {
+    if (selectedVariant?.image) return selectedVariant.image;
+    if (selectedColor) {
+      const colorMatch = variants.find((v) => v.color === selectedColor && v.image);
+      if (colorMatch?.image) return colorMatch.image;
+    }
+    return product.image;
+  }, [selectedVariant, selectedColor, variants, product.image]);
+
   // Load placements available for the selected variant.
   useEffect(() => {
     if (!selectedVariant) {
@@ -90,8 +102,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     };
   }, [product.id, selectedVariant?.id]);
 
-  // Reset mockup state when inputs change. Generation is triggered manually
-  // via the "Preview Mockup" button to respect Printful rate limits.
+  // Reset mockup state when inputs change.
   useEffect(() => {
     setMockupUrl(null);
     setMockupLoading(false);
@@ -119,7 +130,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     }
   }
 
-  const displayPrice = selectedVariant ? getDisplayPrice(selectedVariant.price) : getDisplayPrice("15.00");
+  const basePriceForDisplay = selectedVariant ? selectedVariant.price : "15.00";
 
   function handleAddToOrder() {
     if (!selectedVariant) return;
@@ -159,7 +170,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
         <MockupPreview
           artworkUrl={artworkUrl}
           productTitle={product.title}
-          productImage={product.image}
+          productImage={displayedImage}
           mockupUrl={mockupUrl}
           loading={mockupLoading}
           unavailable={mockupAttempted && !mockupUrl}
@@ -171,7 +182,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           <div>
             <p className="text-xs text-primary font-medium uppercase tracking-wider mb-1">{product.brand}</p>
             <h2 className="font-heading text-2xl font-extrabold text-foreground">{product.title}</h2>
-            <p className="text-3xl font-bold text-primary mt-2">{displayPrice}</p>
+            <PriceDisplay basePrice={basePriceForDisplay} className="text-3xl font-bold text-primary mt-2 block" />
           </div>
 
           {placements.length > 1 && (
@@ -247,7 +258,8 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
             disabled={!selectedVariant || adding}
           >
             {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-            Add to Order - {displayPrice}
+            Add to Order
+            <PriceDisplay basePrice={basePriceForDisplay} usdOnly className="font-semibold" />
           </Button>
 
           {!selectedVariant && <p className="text-xs text-destructive">Please select a valid size/color combination</p>}

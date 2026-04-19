@@ -29,6 +29,7 @@ import MyTreats from "./pages/MyTreats";
 import MyProfile from "./pages/MyProfile";
 import ProductPage from "./pages/ProductPage";
 import { FreeShippingFloatingPill } from "@/components/FreeShippingFloatingPill";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <FreeShippingFloatingPill />
           <Routes>
             <Route path="/" element={<Index />} />

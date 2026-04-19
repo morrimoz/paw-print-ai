@@ -1,14 +1,15 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProductGrid } from "@/components/ProductGrid";
 import { ProductDetail } from "@/components/ProductDetail";
-import { fetchProducts, checkMockupSupport } from "@/services/printful";
+import { fetchProducts } from "@/services/printful";
 import { UI_CATEGORIES } from "@/utils/productCategorization";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { toast } from "sonner";
-import { Image, ArrowLeft, Sparkles } from "lucide-react";
+import { Image, ArrowLeft, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 
 const Merchandise = () => {
@@ -21,7 +22,8 @@ const Merchandise = () => {
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState("wall-art");
   const [selectedProduct, setSelectedProduct] = useState<PrintfulProduct | null>(null);
-  const [mockupSupported, setMockupSupported] = useState<PrintfulProduct[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showArtworkOverlay, setShowArtworkOverlay] = useState(false);
 
   useEffect(() => {
     if (!categoryProducts[activeCategory]) {
@@ -29,30 +31,20 @@ const Merchandise = () => {
     }
   }, [activeCategory]);
 
-  // Find mockup-supported products across a few categories for the featured strip
+  // Lock body scroll when overlay open
   useEffect(() => {
-    let cancelled = false;
-    async function loadFeatured() {
-      try {
-        const candidates: PrintfulProduct[] = [];
-        for (const catId of [21, 24, 112, 19]) {
-          try {
-            const prods = await fetchProducts(catId);
-            candidates.push(...prods.filter((p) => !p.is_discontinued).slice(0, 4));
-          } catch {/* skip */}
-        }
-        const supported: PrintfulProduct[] = [];
-        for (const p of candidates) {
-          if (supported.length >= 6) break;
-          const ok = await checkMockupSupport(p.id);
-          if (ok) supported.push(p);
-        }
-        if (!cancelled) setMockupSupported(supported);
-      } catch {/* ignore */}
-    }
-    loadFeatured();
-    return () => { cancelled = true; };
-  }, []);
+    if (!showArtworkOverlay) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowArtworkOverlay(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [showArtworkOverlay]);
 
   async function loadCategoryProducts(categoryId: string) {
     setLoading(true);
@@ -79,7 +71,16 @@ const Merchandise = () => {
     }
   }
 
-  const displayProducts = categoryProducts[activeCategory] || [];
+  const categoryList = categoryProducts[activeCategory] || [];
+
+  const displayProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return categoryList;
+    return categoryList.filter((p) => {
+      const haystack = `${p.title} ${p.brand ?? ""} ${p.type_name ?? ""} ${p.model ?? ""}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [categoryList, searchQuery]);
 
   function handleAddToOrder(variant: PrintfulVariant, price: number) {
     toast.success(`${variant.name} added! Redirecting to checkout...`);
@@ -133,57 +134,51 @@ const Merchandise = () => {
                   <ArrowLeft className="h-4 w-4" /> Back to Artwork
                 </Link>
               </Button>
-              <h1 className="font-heading text-3xl font-extrabold text-foreground">
-                Put Your Art on Products
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Browse our catalog and see your artwork on premium merchandise
-              </p>
-            </div>
 
-            <div className="glass-card rounded-xl p-4 mb-6 flex items-center gap-4">
-              <img src={artworkUrl} alt="Your artwork" className="w-16 h-16 rounded-lg object-cover" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Your Artwork</p>
-                <p className="text-xs text-muted-foreground capitalize">{artwork.style} style</p>
+              {/* Header row: title left, artwork thumbnail right */}
+              <div className="flex items-start gap-4 sm:gap-6">
+                <div className="flex-1 min-w-0">
+                  <h1 className="font-heading text-3xl font-extrabold text-foreground">
+                    Put Your Art on Products
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    Browse our catalog and see your artwork on premium merchandise
+                  </p>
+                </div>
+                {artworkUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setShowArtworkOverlay(true)}
+                    className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden glass-card-strong ring-1 ring-border hover:ring-primary transition-all"
+                    aria-label="View your artwork full size"
+                  >
+                    <img src={artworkUrl} alt="Your artwork" className="w-full h-full object-cover" />
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Featured: products with live mockup previews from Printful */}
-            {mockupSupported.length > 0 && (
-              <div className="mb-10">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground">
-                    Live Mockup Available
-                  </h2>
-                </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  These products generate a real photo-mockup of your art via Printful - pick one to preview.
-                </p>
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-                  {mockupSupported.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setSelectedProduct(p)}
-                      className="flex-shrink-0 w-36 group text-left"
-                    >
-                      <div className="aspect-square rounded-xl overflow-hidden bg-card border border-border card-lift ring-gradient-hover">
-                        <img
-                          src={p.image}
-                          alt={p.title}
-                          className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-110"
-                          loading="lazy"
-                        />
-                      </div>
-                      <p className="mt-2 text-xs font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                        {p.title}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Search bar */}
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products (e.g. mug, t-shirt, canvas)…"
+                className="pl-10 pr-10 h-11"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             <div className="flex flex-col lg:flex-row gap-8">
               <aside className="lg:w-56 flex-shrink-0">
@@ -226,6 +221,31 @@ const Merchandise = () => {
           </>
         )}
       </div>
+
+      {/* Artwork lightbox overlay */}
+      {showArtworkOverlay && artworkUrl && (
+        <div
+          className="fixed inset-0 z-[110] bg-background/90 backdrop-blur-md flex items-center justify-center p-6"
+          onClick={() => setShowArtworkOverlay(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setShowArtworkOverlay(false)}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full glass-card-strong flex items-center justify-center text-foreground hover:text-primary transition-colors"
+            aria-label="Close artwork preview"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={artworkUrl}
+            alt="Your artwork - full size"
+            className="max-w-[95vw] max-h-[90vh] rounded-2xl shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </DashboardLayout>
   );
 };

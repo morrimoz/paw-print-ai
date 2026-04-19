@@ -9,6 +9,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/hero-explain.jpg";
+import { SmartImage } from "@/components/SmartImage";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -96,10 +97,13 @@ const Index = () => {
             style={{ transformStyle: "preserve-3d" }}
           >
             <div className="relative rounded-[2rem] overflow-hidden glass-card-strong p-2 ring-gradient-hover">
-              <img
+              <SmartImage
                 src={heroImage}
                 alt="Heartwarming Pixar-style pet and owner illustration"
                 className="w-full h-auto rounded-[1.6rem]"
+                wrapperClassName="rounded-[1.6rem]"
+                aspectClassName="aspect-[4/3]"
+                placeholderClassName="rounded-[1.6rem]"
                 loading="eager"
               />
             </div>

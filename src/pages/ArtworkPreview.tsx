@@ -79,10 +79,7 @@ const ArtworkPreview = () => {
           </div>
           {artwork && (
             <div className="p-6 text-center">
-              <p className="text-sm text-muted-foreground mb-1">
-                Style: <span className="font-medium text-foreground capitalize">{artwork.style}</span>
-              </p>
-              <p className="text-xs uppercase tracking-wider text-primary font-semibold mt-4 mb-2">
+              <p className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">
                 Next step
               </p>
               <Button variant="hero" size="xl" className="w-full sm:w-auto px-10" asChild>

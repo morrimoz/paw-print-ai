@@ -2,7 +2,7 @@
 // It is applied to every Printful base price across the entire app
 // (gallery, product detail, checkout, order totals).
 // Example: 2.0 = 100% markup, 2.5 = 150% markup, 3.0 = 200% markup.
-const MARKUP_MULTIPLIER = 2;
+const MARKUP_MULTIPLIER = 1;
 
 /**
  * Apply markup to Printful base price (USD)
@@ -41,26 +41,74 @@ export interface CurrencyInfo {
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: "$", EUR: "€", GBP: "£", CAD: "CA$", AUD: "A$", JPY: "¥",
-  INR: "₹", BRL: "R$", MXN: "MX$", CHF: "CHF", SEK: "kr", NOK: "kr",
-  DKK: "kr", PLN: "zł", ZAR: "R", NZD: "NZ$", SGD: "S$", HKD: "HK$",
-  KRW: "₩", CNY: "¥", TRY: "₺", AED: "د.إ",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  CAD: "CA$",
+  AUD: "A$",
+  JPY: "¥",
+  INR: "₹",
+  BRL: "R$",
+  MXN: "MX$",
+  CHF: "CHF",
+  SEK: "kr",
+  NOK: "kr",
+  DKK: "kr",
+  PLN: "zł",
+  ZAR: "R",
+  NZD: "NZ$",
+  SGD: "S$",
+  HKD: "HK$",
+  KRW: "₩",
+  CNY: "¥",
+  TRY: "₺",
+  AED: "د.إ",
 };
 
 /** Cheap locale → currency map for fallback when Intl info isn't enough. */
 const LOCALE_CURRENCY: Record<string, string> = {
-  US: "USD", GB: "GBP", IE: "EUR", DE: "EUR", FR: "EUR", ES: "EUR", IT: "EUR",
-  NL: "EUR", BE: "EUR", PT: "EUR", AT: "EUR", FI: "EUR", GR: "EUR", LU: "EUR",
-  CA: "CAD", AU: "AUD", NZ: "NZD", JP: "JPY", IN: "INR", BR: "BRL", MX: "MXN",
-  CH: "CHF", SE: "SEK", NO: "NOK", DK: "DKK", PL: "PLN", ZA: "ZAR", SG: "SGD",
-  HK: "HKD", KR: "KRW", CN: "CNY", TR: "TRY", AE: "AED",
+  US: "USD",
+  GB: "GBP",
+  IE: "EUR",
+  DE: "EUR",
+  FR: "EUR",
+  ES: "EUR",
+  IT: "EUR",
+  NL: "EUR",
+  BE: "EUR",
+  PT: "EUR",
+  AT: "EUR",
+  FI: "EUR",
+  GR: "EUR",
+  LU: "EUR",
+  CA: "CAD",
+  AU: "AUD",
+  NZ: "NZD",
+  JP: "JPY",
+  IN: "INR",
+  BR: "BRL",
+  MX: "MXN",
+  CH: "CHF",
+  SE: "SEK",
+  NO: "NOK",
+  DK: "DKK",
+  PL: "PLN",
+  ZA: "ZAR",
+  SG: "SGD",
+  HK: "HKD",
+  KR: "KRW",
+  CN: "CNY",
+  TR: "TRY",
+  AE: "AED",
 };
 
 export function detectUserCurrency(): string {
   try {
     const region = (Intl.DateTimeFormat().resolvedOptions() as { locale: string }).locale.split("-")[1]?.toUpperCase();
     if (region && LOCALE_CURRENCY[region]) return LOCALE_CURRENCY[region];
-  } catch {/* ignore */}
+  } catch {
+    /* ignore */
+  }
   return "USD";
 }
 

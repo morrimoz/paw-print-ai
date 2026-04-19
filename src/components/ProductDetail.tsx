@@ -198,7 +198,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           <MockupPreview
             artworkUrl={artworkUrl}
             productTitle={product.title}
-            productImage={displayedImage}
+            displayedImage={mockupUrl || displayedImage}
             mockupUrl={mockupUrl}
             loading={mockupLoading}
             unavailable={mockupAttempted && !mockupUrl}

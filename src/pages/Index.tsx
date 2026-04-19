@@ -102,7 +102,7 @@ const Index = () => {
                 alt="Heartwarming Pixar-style pet and owner illustration"
                 className="w-full h-auto rounded-[1.6rem]"
                 wrapperClassName="rounded-[1.6rem]"
-                aspectClassName="aspect-[4/3]"
+                aspectClassName="aspect-[6336/2688]"
                 placeholderClassName="rounded-[1.6rem]"
                 loading="eager"
               />

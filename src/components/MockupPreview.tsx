@@ -29,15 +29,27 @@ export function MockupPreview({
   onPreviewMockup,
   canPreview,
 }: MockupPreviewProps) {
-  // Real Printful mockup ready - render it.
+  // Real Printful mockup ready - render it with a BETA disclaimer below.
   if (mockupUrl) {
     return (
-      <div className="relative aspect-square rounded-2xl overflow-hidden glass-card">
-        <img
-          src={mockupUrl}
-          alt={`${productTitle} preview with your pet art`}
-          className="w-full h-full object-contain"
-        />
+      <div className="space-y-3">
+        <div className="relative aspect-square rounded-2xl overflow-hidden glass-card">
+          <img
+            src={mockupUrl}
+            alt={`${productTitle} preview with your pet art`}
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/40 p-3">
+          <span className="inline-flex items-center justify-center rounded-md bg-primary/15 text-primary text-[10px] font-extrabold tracking-wider px-2 py-1 shrink-0">
+            BETA
+          </span>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Mockup previews are an approximation. Some products may not render the artwork
+            perfectly here — at print time your art is precisely placed using your selected
+            placement and the final product will look better than this preview.
+          </p>
+        </div>
       </div>
     );
   }
@@ -48,6 +60,7 @@ export function MockupPreview({
       <div className="relative aspect-square rounded-2xl overflow-hidden glass-card bg-muted/40">
         {productImage ? (
           <img
+            key={productImage}
             src={productImage}
             alt={productTitle}
             className="w-full h-full object-contain opacity-60"

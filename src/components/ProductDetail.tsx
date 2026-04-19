@@ -66,10 +66,27 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
 
   const selectedVariant = getSelectedVariant();
 
-  // Pick the best image to show: prefer a variant image matching the selected color
-  // (any size with that color works since the color image is shared per color).
-  // Falls back through: exact selected variant → any variant with this color → product hero.
-  const displayedImage = useMemo(() => {
+  // Build the gallery: all distinct images for the selected color, plus the product hero.
+  // Different size variants for the same color sometimes carry slightly different angle
+  // shots — we surface them all so the user can browse the product.
+  const galleryImages = useMemo(() => {
+    const list: string[] = [];
+    if (selectedColor) {
+      for (const v of variants) {
+        if (v.color === selectedColor && v.image) list.push(v.image);
+      }
+    } else {
+      for (const v of variants) {
+        if (v.image) list.push(v.image);
+      }
+    }
+    if (product.image) list.push(product.image);
+    return Array.from(new Set(list));
+  }, [variants, selectedColor, product.image]);
+
+  // The image actively shown on top. Auto-derived from the selected color, but the
+  // user can override it by clicking a thumbnail. Reset whenever the color changes.
+  const autoImage = useMemo(() => {
     if (selectedVariant?.image) return selectedVariant.image;
     if (selectedColor) {
       const colorMatch = variants.find((v) => v.color === selectedColor && !!v.image);
@@ -77,6 +94,13 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     }
     return product.image;
   }, [selectedVariant, selectedColor, variants, product.image]);
+
+  const [manualImage, setManualImage] = useState<string | null>(null);
+  useEffect(() => {
+    setManualImage(null);
+  }, [selectedColor, selectedVariant?.id]);
+
+  const displayedImage = manualImage || autoImage;
 
   // Load placements available for the selected variant.
   useEffect(() => {

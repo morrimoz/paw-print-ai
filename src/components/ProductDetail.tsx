@@ -65,11 +65,12 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
   const selectedVariant = getSelectedVariant();
 
   // Pick the best image to show: prefer a variant image matching the selected color
-  // (any size with that color works since the color image is usually shared).
+  // (any size with that color works since the color image is shared per color).
+  // Falls back through: exact selected variant → any variant with this color → product hero.
   const displayedImage = useMemo(() => {
     if (selectedVariant?.image) return selectedVariant.image;
     if (selectedColor) {
-      const colorMatch = variants.find((v) => v.color === selectedColor && v.image);
+      const colorMatch = variants.find((v) => v.color === selectedColor && !!v.image);
       if (colorMatch?.image) return colorMatch.image;
     }
     return product.image;

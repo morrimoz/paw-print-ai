@@ -1,10 +1,11 @@
 import { PublicLayout } from "@/components/PublicLayout";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { fetchProducts, fetchProductDetail } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
-import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
+import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 
@@ -35,6 +36,7 @@ const Gallery = () => {
   const [error, setError] = useState<string | null>(null);
   const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
   const [visibleCount, setVisibleCount] = useState(12);
+  const [searchQuery, setSearchQuery] = useState("");
   const gridRef = useScrollReveal<HTMLDivElement>(".reveal");
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -75,19 +77,32 @@ const Gallery = () => {
   }, [activeCategory]);
 
   const products = productsByCat[activeCategory] || [];
-  const visibleProducts = products.slice(0, visibleCount);
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => {
+      const haystack = `${p.title} ${p.brand ?? ""} ${p.type_name ?? ""} ${p.model ?? ""}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [products, searchQuery]);
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
+
+  // Reset visible count when search changes
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [searchQuery]);
 
   // Lazy-load more as the user scrolls.
   useEffect(() => {
     if (!sentinelRef.current) return;
     const obs = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        setVisibleCount((c) => Math.min(c + 12, products.length));
+        setVisibleCount((c) => Math.min(c + 12, filteredProducts.length));
       }
     }, { rootMargin: "400px" });
     obs.observe(sentinelRef.current);
     return () => obs.disconnect();
-  }, [products.length]);
+  }, [filteredProducts.length]);
 
   // Lazily fetch real "from" prices ONLY for currently visible products.
   // Throttled and dedup'd to keep us well under Printful's rate limit.
@@ -160,6 +175,28 @@ const Gallery = () => {
               );
             })}
           </div>
+
+          {/* Search bar */}
+          <div className="mt-6 max-w-xl mx-auto relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products (e.g. mug, t-shirt, canvas)…"
+              className="pl-10 pr-10 h-11 bg-background/80 backdrop-blur"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -192,7 +229,15 @@ const Gallery = () => {
             </div>
           )}
 
-          {!loading && products.length > 0 && (
+          {!loading && products.length > 0 && filteredProducts.length === 0 && (
+            <div className="flex flex-col items-center text-center py-16 text-muted-foreground">
+              <PackageOpen className="h-12 w-12 mb-3 opacity-50" />
+              <p className="font-medium text-foreground">No products match "{searchQuery}"</p>
+              <p className="text-sm mt-1">Try a different search or clear the filter.</p>
+            </div>
+          )}
+
+          {!loading && filteredProducts.length > 0 && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {visibleProducts.map((p) => (
@@ -226,7 +271,7 @@ const Gallery = () => {
                   </Link>
                 ))}
               </div>
-              {visibleCount < products.length && (
+              {visibleCount < filteredProducts.length && (
                 <div ref={sentinelRef} className="flex justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>

@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { MockupPreview } from "./MockupPreview";
 import { PriceDisplay } from "./PriceDisplay";
+import { ProductDescription } from "./ProductDescription";
+import { ProductImageGallery } from "./ProductImageGallery";
 import { getMarkedUpPrice } from "@/utils/pricing";
 import { fetchProductDetail, fetchPlacementsForVariant, generateMockup } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";

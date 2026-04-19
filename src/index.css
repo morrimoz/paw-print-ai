@@ -284,4 +284,52 @@
     transform: translateY(40px);
     will-change: opacity, transform;
   }
+
+  /* Shimmer placeholder for image loading */
+  .shimmer-loader {
+    background: linear-gradient(
+      120deg,
+      hsl(var(--grad-1) / 0.7) 0%,
+      hsl(var(--grad-2) / 0.7) 25%,
+      hsl(var(--grad-3) / 0.7) 50%,
+      hsl(var(--grad-4) / 0.7) 75%,
+      hsl(var(--grad-1) / 0.7) 100%
+    );
+    background-size: 300% 300%;
+    animation: shimmer-pan 4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer-pan {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+
+  /* Smooth fade-in once an image has loaded */
+  .img-fade-in {
+    opacity: 0;
+    transition: opacity 0.7s ease-out;
+  }
+  .img-fade-in.is-loaded { opacity: 1; }
+
+  /* ASMR generating pulse rings */
+  @keyframes pulse-ring {
+    0%   { transform: scale(0.85); opacity: 0.85; }
+    80%  { transform: scale(1.6); opacity: 0; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .pulse-ring {
+    animation: pulse-ring 2.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50%      { transform: scale(1.03); filter: brightness(1.08); }
+  }
+  .animate-breathe { animation: breathe 4s ease-in-out infinite; }
+
+  @keyframes orbit-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .animate-orbit { animation: orbit-spin 8s linear infinite; }
 }

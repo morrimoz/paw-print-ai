@@ -97,12 +97,12 @@ const Gallery = () => {
     if (!sentinelRef.current) return;
     const obs = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        setVisibleCount((c) => Math.min(c + 12, products.length));
+        setVisibleCount((c) => Math.min(c + 12, filteredProducts.length));
       }
     }, { rootMargin: "400px" });
     obs.observe(sentinelRef.current);
     return () => obs.disconnect();
-  }, [products.length]);
+  }, [filteredProducts.length]);
 
   // Lazily fetch real "from" prices ONLY for currently visible products.
   // Throttled and dedup'd to keep us well under Printful's rate limit.
@@ -207,7 +207,15 @@ const Gallery = () => {
             </div>
           )}
 
-          {!loading && products.length > 0 && (
+          {!loading && products.length > 0 && filteredProducts.length === 0 && (
+            <div className="flex flex-col items-center text-center py-16 text-muted-foreground">
+              <PackageOpen className="h-12 w-12 mb-3 opacity-50" />
+              <p className="font-medium text-foreground">No products match "{searchQuery}"</p>
+              <p className="text-sm mt-1">Try a different search or clear the filter.</p>
+            </div>
+          )}
+
+          {!loading && filteredProducts.length > 0 && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {visibleProducts.map((p) => (
@@ -241,7 +249,7 @@ const Gallery = () => {
                   </Link>
                 ))}
               </div>
-              {visibleCount < products.length && (
+              {visibleCount < filteredProducts.length && (
                 <div ref={sentinelRef} className="flex justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>

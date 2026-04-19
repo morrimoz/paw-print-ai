@@ -175,6 +175,28 @@ const Gallery = () => {
               );
             })}
           </div>
+
+          {/* Search bar */}
+          <div className="mt-6 max-w-xl mx-auto relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products (e.g. mug, t-shirt, canvas)…"
+              className="pl-10 pr-10 h-11 bg-background/80 backdrop-blur"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       </section>
 

@@ -68,35 +68,42 @@ export function MockupPreview({
 
   // Default: show the product image with an optional "Preview Mockup" button.
   return (
-    <div className="relative aspect-square rounded-2xl overflow-hidden glass-card bg-muted/40">
-      {productImage ? (
-        <img src={productImage} alt={productTitle} className="w-full h-full object-contain" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-muted">
-          <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-        </div>
-      )}
+    <div className="space-y-3">
+      <div className="relative aspect-square rounded-2xl overflow-hidden glass-card bg-muted/40">
+        {productImage ? (
+          <img
+            key={productImage}
+            src={productImage}
+            alt={productTitle}
+            className="w-full h-full object-contain transition-opacity duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+          </div>
+        )}
 
-      {canPreview && onPreviewMockup && (
-        <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-background/90 via-background/60 to-transparent">
-          <Button
-            variant="hero"
-            size="lg"
-            className="w-full gap-2"
-            onClick={onPreviewMockup}
-          >
-            <Sparkles className="h-4 w-4" /> Preview Mockup
-          </Button>
-        </div>
-      )}
+        {canPreview && onPreviewMockup && (
+          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-background/90 via-background/60 to-transparent">
+            <Button
+              variant="hero"
+              size="lg"
+              className="w-full gap-2"
+              onClick={onPreviewMockup}
+            >
+              <Sparkles className="h-4 w-4" /> Preview Mockup
+            </Button>
+          </div>
+        )}
 
-      {unavailable && artworkUrl && (
-        <div className="absolute top-3 left-3 right-3 glass-card-strong rounded-lg p-2 text-center">
-          <p className="text-[11px] text-muted-foreground">
-            Mockup preview unavailable for this product - your art will be applied at print time.
-          </p>
-        </div>
-      )}
+        {unavailable && artworkUrl && (
+          <div className="absolute top-3 left-3 right-3 glass-card-strong rounded-lg p-2 text-center">
+            <p className="text-[11px] text-muted-foreground">
+              Mockup preview unavailable for this product - your art will be applied at print time.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

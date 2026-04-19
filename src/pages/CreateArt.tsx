@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Upload, Sparkles, ImagePlus, Contrast, Film, Palette, Camera, Smile, Wand2 } from "lucide-react";
+import { Upload, Sparkles, ImagePlus, Contrast, Film, Palette, Camera, Smile, Wand2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,11 +174,33 @@ const CreateArt = () => {
         <div className="mb-8">
           <h2 className="font-heading text-lg font-semibold text-foreground mb-3">1. Upload Your Pet's Photo</h2>
           <div
-            className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary transition-colors"
-            onClick={() => fileRef.current?.click()}
+            className="relative border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary transition-colors"
+            onClick={() => {
+              // Don't reopen the file picker when the user is interacting with
+              // the preview (e.g. clicking the delete button).
+              if (!previewUrl) fileRef.current?.click();
+            }}
           >
             {previewUrl ? (
-              <img src={previewUrl} alt="Pet preview" className="mx-auto max-h-64 rounded-lg object-contain" />
+              <div className="relative inline-block mx-auto">
+                <img src={previewUrl} alt="Pet preview" className="mx-auto max-h-64 rounded-lg object-contain" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedFile(null);
+                    setPreviewUrl((prev) => {
+                      if (prev) URL.revokeObjectURL(prev);
+                      return null;
+                    });
+                    if (fileRef.current) fileRef.current.value = "";
+                  }}
+                  aria-label="Remove uploaded image"
+                  className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-foreground text-background shadow-md flex items-center justify-center hover:bg-destructive transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Upload className="h-10 w-10" />
@@ -188,6 +210,15 @@ const CreateArt = () => {
             )}
             <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleFileChange} />
           </div>
+          {previewUrl && (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="mt-3 text-sm text-primary hover:underline"
+            >
+              Replace with a different photo
+            </button>
+          )}
         </div>
 
         {/* Text Prompt */}

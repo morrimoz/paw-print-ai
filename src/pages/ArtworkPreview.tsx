@@ -5,7 +5,7 @@ import { Download, ShoppingBag, Image, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { fetchProducts } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
-import { getStartingPrice } from "@/utils/pricing";
+import { PriceDisplay } from "@/components/PriceDisplay";
 
 const ArtworkPreview = () => {
   const location = useLocation();
@@ -130,7 +130,7 @@ const ArtworkPreview = () => {
                     <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                       {product.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">From {getStartingPrice(["15.00"])}</p>
+                    <PriceDisplay basePrice="15.00" prefix="From" className="text-xs text-muted-foreground mt-1 block" />)
                   </Link>
                 ))}
               </div>

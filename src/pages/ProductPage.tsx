@@ -290,12 +290,17 @@ const ProductPage = () => {
             <MockupPreview
               artworkUrl={artworkUrl || ""}
               productTitle={product.title}
-              productImage={product.image}
+              displayedImage={mockupUrl || displayedImage}
               mockupUrl={mockupUrl}
               loading={mockupLoading}
               unavailable={mockupAttempted && !mockupUrl}
               canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
               onPreviewMockup={handlePreviewMockup}
+            />
+            <ProductImageGallery
+              images={mockupUrl ? [mockupUrl, ...galleryImages] : galleryImages}
+              selected={mockupUrl || displayedImage || ""}
+              onSelect={(img) => setManualImage(img)}
             />
             {!artworkUrl && (
               <p className="text-xs text-center text-muted-foreground">
@@ -442,7 +447,7 @@ const ProductPage = () => {
             {product.description && (
               <div className="pt-4 border-t border-border">
                 <h3 className="text-sm font-semibold text-foreground mb-2">Description</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                <ProductDescription description={product.description} />
               </div>
             )}
           </div>

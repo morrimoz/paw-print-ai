@@ -1,10 +1,11 @@
 import { PublicLayout } from "@/components/PublicLayout";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { fetchProducts, fetchProductDetail } from "@/services/printful";
 import type { PrintfulProduct } from "@/services/printful";
 import { getStartingPrice } from "@/utils/pricing";
-import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles } from "lucide-react";
+import { Loader2, PackageOpen, Frame, Shirt, Coffee, Backpack, Home, Sparkles, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 
@@ -35,6 +36,7 @@ const Gallery = () => {
   const [error, setError] = useState<string | null>(null);
   const [startingPrices, setStartingPrices] = useState<Record<number, string>>({});
   const [visibleCount, setVisibleCount] = useState(12);
+  const [searchQuery, setSearchQuery] = useState("");
   const gridRef = useScrollReveal<HTMLDivElement>(".reveal");
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +77,20 @@ const Gallery = () => {
   }, [activeCategory]);
 
   const products = productsByCat[activeCategory] || [];
-  const visibleProducts = products.slice(0, visibleCount);
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => {
+      const haystack = `${p.title} ${p.brand ?? ""} ${p.type_name ?? ""} ${p.model ?? ""}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [products, searchQuery]);
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
+
+  // Reset visible count when search changes
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [searchQuery]);
 
   // Lazy-load more as the user scrolls.
   useEffect(() => {

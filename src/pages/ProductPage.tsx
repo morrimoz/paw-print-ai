@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchProductDetail, fetchPlacementsForVariant, generateMockup } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { MockupPreview } from "@/components/MockupPreview";
+import { ProductDescription } from "@/components/ProductDescription";
+import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { PeopleAlsoBought } from "@/components/PeopleAlsoBought";
 import { getDisplayPrice, getMarkedUpPrice } from "@/utils/pricing";
 import { ArrowLeft, ShoppingCart, Upload, Sparkles, ImagePlus, Loader2, Gift } from "lucide-react";
@@ -141,6 +143,40 @@ const ProductPage = () => {
     return acc;
   }, {});
 
+  // Auto-pick the best image to show: variant image for selected color, falling
+  // back to the product hero. Distinct variant images for the active color make
+  // up the gallery the user can cycle through.
+  const galleryImages: string[] = (() => {
+    const list: string[] = [];
+    if (selectedColor) {
+      for (const v of variants) {
+        if (v.color === selectedColor && v.image) list.push(v.image);
+      }
+    } else {
+      for (const v of variants) {
+        if (v.image) list.push(v.image);
+      }
+    }
+    if (product?.image) list.push(product.image);
+    return Array.from(new Set(list));
+  })();
+
+  const autoImage = (() => {
+    if (selectedVariant?.image) return selectedVariant.image;
+    if (selectedColor) {
+      const colorMatch = variants.find((v) => v.color === selectedColor && !!v.image);
+      if (colorMatch?.image) return colorMatch.image;
+    }
+    return product?.image || null;
+  })();
+
+  const [manualImage, setManualImage] = useState<string | null>(null);
+  useEffect(() => {
+    setManualImage(null);
+  }, [selectedColor, selectedVariant?.id]);
+
+  const displayedImage = manualImage || autoImage;
+
   const displayPrice = selectedVariant ? getDisplayPrice(selectedVariant.price) : getDisplayPrice("15.00");
 
   function handleCustomize() {
@@ -254,12 +290,17 @@ const ProductPage = () => {
             <MockupPreview
               artworkUrl={artworkUrl || ""}
               productTitle={product.title}
-              productImage={product.image}
+              displayedImage={mockupUrl || displayedImage}
               mockupUrl={mockupUrl}
               loading={mockupLoading}
               unavailable={mockupAttempted && !mockupUrl}
               canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
               onPreviewMockup={handlePreviewMockup}
+            />
+            <ProductImageGallery
+              images={mockupUrl ? [mockupUrl, ...galleryImages] : galleryImages}
+              selected={mockupUrl || displayedImage || ""}
+              onSelect={(img) => setManualImage(img)}
             />
             {!artworkUrl && (
               <p className="text-xs text-center text-muted-foreground">
@@ -406,7 +447,7 @@ const ProductPage = () => {
             {product.description && (
               <div className="pt-4 border-t border-border">
                 <h3 className="text-sm font-semibold text-foreground mb-2">Description</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                <ProductDescription description={product.description} />
               </div>
             )}
           </div>

@@ -242,15 +242,24 @@ const CreateArt = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {artStyles.map((style) => {
               const isSelected = selectedStyle === style.id;
+              const hasSelection = selectedStyle !== null;
+              const isDimmed = hasSelection && !isSelected;
               const Icon = style.Icon;
               return (
                 <button
                   key={style.id}
                   onClick={() => setSelectedStyle(isSelected ? null : style.id)}
-                  className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 card-lift ${
+                  style={{
+                    boxShadow: isSelected
+                      ? "0 0 0 3px hsl(var(--primary) / 0.35), 0 0 28px 4px hsl(var(--primary) / 0.45)"
+                      : undefined,
+                  }}
+                  className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-500 ease-out will-change-transform ${
                     isSelected
-                      ? "border-primary shadow-lg ring-2 ring-primary/30"
-                      : "border-border md:hover:border-primary/50"
+                      ? "border-primary scale-[1.04] z-10"
+                      : isDimmed
+                        ? "border-border scale-[0.92] opacity-50 md:hover:opacity-80"
+                        : "border-border md:hover:border-primary/50 card-lift"
                   }`}
                 >
                   {/* Default state - the style reference image */}

@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { MockupPreview } from "./MockupPreview";
 import { PriceDisplay } from "./PriceDisplay";
+import { ProductDescription } from "./ProductDescription";
+import { ProductImageGallery } from "./ProductImageGallery";
 import { getMarkedUpPrice } from "@/utils/pricing";
 import { fetchProductDetail, fetchPlacementsForVariant, generateMockup } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
@@ -64,10 +66,27 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
 
   const selectedVariant = getSelectedVariant();
 
-  // Pick the best image to show: prefer a variant image matching the selected color
-  // (any size with that color works since the color image is shared per color).
-  // Falls back through: exact selected variant → any variant with this color → product hero.
-  const displayedImage = useMemo(() => {
+  // Build the gallery: all distinct images for the selected color, plus the product hero.
+  // Different size variants for the same color sometimes carry slightly different angle
+  // shots — we surface them all so the user can browse the product.
+  const galleryImages = useMemo(() => {
+    const list: string[] = [];
+    if (selectedColor) {
+      for (const v of variants) {
+        if (v.color === selectedColor && v.image) list.push(v.image);
+      }
+    } else {
+      for (const v of variants) {
+        if (v.image) list.push(v.image);
+      }
+    }
+    if (product.image) list.push(product.image);
+    return Array.from(new Set(list));
+  }, [variants, selectedColor, product.image]);
+
+  // The image actively shown on top. Auto-derived from the selected color, but the
+  // user can override it by clicking a thumbnail. Reset whenever the color changes.
+  const autoImage = useMemo(() => {
     if (selectedVariant?.image) return selectedVariant.image;
     if (selectedColor) {
       const colorMatch = variants.find((v) => v.color === selectedColor && !!v.image);
@@ -75,6 +94,13 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
     }
     return product.image;
   }, [selectedVariant, selectedColor, variants, product.image]);
+
+  const [manualImage, setManualImage] = useState<string | null>(null);
+  useEffect(() => {
+    setManualImage(null);
+  }, [selectedColor, selectedVariant?.id]);
+
+  const displayedImage = manualImage || autoImage;
 
   // Load placements available for the selected variant.
   useEffect(() => {
@@ -168,16 +194,23 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <MockupPreview
-          artworkUrl={artworkUrl}
-          productTitle={product.title}
-          productImage={displayedImage}
-          mockupUrl={mockupUrl}
-          loading={mockupLoading}
-          unavailable={mockupAttempted && !mockupUrl}
-          canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
-          onPreviewMockup={handlePreviewMockup}
-        />
+        <div className="space-y-3">
+          <MockupPreview
+            artworkUrl={artworkUrl}
+            productTitle={product.title}
+            displayedImage={mockupUrl || displayedImage}
+            mockupUrl={mockupUrl}
+            loading={mockupLoading}
+            unavailable={mockupAttempted && !mockupUrl}
+            canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
+            onPreviewMockup={handlePreviewMockup}
+          />
+          <ProductImageGallery
+            images={mockupUrl ? [mockupUrl, ...galleryImages] : galleryImages}
+            selected={mockupUrl || displayedImage}
+            onSelect={(img) => setManualImage(img)}
+          />
+        </div>
 
         <div className="space-y-6">
           <div>
@@ -268,7 +301,7 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           {product.description && (
             <div className="pt-4 border-t border-border">
               <h3 className="text-sm font-semibold text-foreground mb-2">Description</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+              <ProductDescription description={product.description} />
             </div>
           )}
         </div>

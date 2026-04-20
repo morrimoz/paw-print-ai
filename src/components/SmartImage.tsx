@@ -11,6 +11,8 @@ interface SmartImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   aspectClassName?: string;
   /** Override placeholder rounding/look. Defaults to inherit from wrapper. */
   placeholderClassName?: string;
+  /** Use hero-specific sunset orange/blue shimmer instead of default. */
+  variant?: "default" | "hero";
 }
 
 /**
@@ -27,6 +29,7 @@ export function SmartImage({
   placeholderClassName,
   className,
   onLoad,
+  variant = "default",
   ...imgProps
 }: SmartImageProps) {
   const [loaded, setLoaded] = useState(false);
@@ -41,7 +44,8 @@ export function SmartImage({
     >
       <div
         className={cn(
-          "absolute inset-0 shimmer-loader transition-opacity duration-700 ease-out",
+          "absolute inset-0 transition-opacity duration-700 ease-out",
+          variant === "hero" ? "shimmer-loader-hero" : "shimmer-loader",
           loaded ? "opacity-0" : "opacity-100",
           placeholderClassName,
         )}

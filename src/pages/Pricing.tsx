@@ -26,7 +26,10 @@ const Pricing = () => {
             Simple, Treat-Based Pricing
           </h1>
           <p className="mt-4 text-center text-lg text-muted-foreground max-w-lg mx-auto">
-            Buy treats, create art. No subscriptions, no hidden fees. Each generation costs 1 treat.
+            Buy treats, create art. No subscriptions, no hidden fees.
+          </p>
+          <p className="mt-2 text-center text-sm text-primary/80 font-medium">
+            1 treat = 1 AI art generation
           </p>
 
           {/* Merch pricing callout */}
@@ -57,7 +60,7 @@ const Pricing = () => {
                   <span className="text-4xl font-extrabold text-foreground">${pkg.price}</span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {pkg.treats} treats · ${pkg.perTreat} each
+                  {pkg.treats} treats
                 </p>
                 <ul className="mt-6 flex flex-col gap-2 flex-1">
                   {features.slice(0, pkg.popular ? 5 : 3).map((f) => (

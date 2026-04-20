@@ -57,11 +57,11 @@
     --sidebar-border: 210 25% 90%;
     --sidebar-ring: 199 89% 64%;
 
-    /* Animated gradient stops (light) */
-    --grad-1: 199 95% 88%;
-    --grad-2: 270 80% 92%;
-    --grad-3: 340 90% 92%;
-    --grad-4: 45 95% 88%;
+    /* Animated gradient stops (light) - Sunset oranges and blues */
+    --grad-1: 25 95% 65%;   /* Warm sunset orange */
+    --grad-2: 200 85% 55%;  /* Ocean blue */
+    --grad-3: 35 90% 60%;   /* Golden amber */
+    --grad-4: 195 80% 45%;  /* Deep teal blue */
 
     --font-heading: 'Bricolage Grotesque', sans-serif;
     --font-body: 'Figtree', sans-serif;
@@ -113,11 +113,11 @@
     --sidebar-border: 0 0% 16%;
     --sidebar-ring: 45 96% 69%;
 
-    /* Animated gradient stops (dark) */
-    --grad-1: 45 80% 25%;
-    --grad-2: 280 60% 18%;
-    --grad-3: 200 70% 18%;
-    --grad-4: 340 70% 22%;
+    /* Animated gradient stops (dark) - Sunset oranges and blues */
+    --grad-1: 25 85% 55%;   /* Warm sunset orange */
+    --grad-2: 200 75% 45%;  /* Ocean blue */
+    --grad-3: 35 80% 50%;   /* Golden amber */
+    --grad-4: 195 70% 40%;  /* Deep teal blue */
   }
 }
 

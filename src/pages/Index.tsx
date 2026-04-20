@@ -104,6 +104,7 @@ const Index = () => {
                 wrapperClassName="rounded-[1.6rem]"
                 aspectClassName="aspect-[6336/2688]"
                 placeholderClassName="rounded-[1.6rem]"
+                variant="hero"
                 loading="eager"
               />
             </div>

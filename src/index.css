@@ -299,6 +299,20 @@
     animation: shimmer-pan 4s ease-in-out infinite;
   }
 
+  /* Hero-specific shimmer with sunset oranges and blues */
+  .shimmer-loader-hero {
+    background: linear-gradient(
+      120deg,
+      hsl(25 95% 65% / 0.8) 0%,    /* Warm sunset orange */
+      hsl(200 85% 55% / 0.75) 25%,  /* Ocean blue */
+      hsl(35 90% 60% / 0.8) 50%,    /* Golden amber */
+      hsl(195 80% 45% / 0.75) 75%,  /* Deep teal blue */
+      hsl(25 95% 65% / 0.8) 100%    /* Back to orange */
+    );
+    background-size: 300% 300%;
+    animation: shimmer-pan 4s ease-in-out infinite;
+  }
+
   @keyframes shimmer-pan {
     0%, 100% { background-position: 0% 50%; }
     50%      { background-position: 100% 50%; }

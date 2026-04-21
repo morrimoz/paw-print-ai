@@ -87,6 +87,13 @@ serve(async (req) => {
       ui_mode: "embedded",
       return_url: returnUrl || `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       allow_promotion_codes: true,
+      ...(mode === "payment" && {
+        customer_creation: "always",
+        invoice_creation: {
+          enabled: true,
+          invoice_data: { metadata },
+        },
+      }),
       metadata,
       ...(merch && {
         shipping_address_collection: { allowed_countries: ["US", "CA", "GB", "AU", "DE", "FR", "ES", "IT", "NL", "SE", "NO", "DK", "FI", "IE", "BE"] },

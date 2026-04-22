@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Upload, Palette, Sparkles, ShoppingBag, ArrowRight } from "lucide-react";
 import howItWorksHero from "@/assets/how-it-works-hero.png";
+import { HowItWorks3D } from "@/components/HowItWorks3D";
 
 const steps = [
   {
@@ -28,10 +30,13 @@ const steps = [
 ];
 
 const HowItWorks = () => {
+  const stepsSectionRef = useRef<HTMLElement>(null);
+
   return (
     <PublicLayout>
-      <section className="py-16 md:py-24">
-        <div className="container max-w-5xl">
+      <section ref={stepsSectionRef} className="relative py-16 md:py-24 overflow-hidden">
+        <HowItWorks3D containerRef={stepsSectionRef} />
+        <div className="container max-w-5xl relative z-10">
           <h1 className="font-heading text-4xl md:text-5xl font-extrabold text-center text-foreground">
             How It Works
           </h1>

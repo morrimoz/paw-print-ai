@@ -71,6 +71,11 @@ const HowItWorks = () => {
             <Button variant="hero" size="xl" asChild>
               <Link to="/create-art">Start Creating Your Art <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
+            
+            {/* 3D Paw Orb - centered below CTA */}
+            <div className="mt-8 flex justify-center">
+              <HowItWorks3D />
+            </div>
           </div>
         </div>
       </section>

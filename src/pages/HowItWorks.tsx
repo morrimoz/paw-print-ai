@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Upload, Palette, Sparkles, ShoppingBag, ArrowRight } from "lucide-react";
 import howItWorksHero from "@/assets/how-it-works-hero.png";
-import { HowItWorks3D } from "@/components/HowItWorks3D";
 
 const steps = [
   {
@@ -30,12 +29,9 @@ const steps = [
 ];
 
 const HowItWorks = () => {
-  const stepsSectionRef = useRef<HTMLElement>(null);
-
   return (
     <PublicLayout>
-      <section ref={stepsSectionRef} className="relative py-16 md:py-24 overflow-hidden">
-        <HowItWorks3D containerRef={stepsSectionRef} />
+      <section className="relative py-16 md:py-24 overflow-hidden">
         <div className="container max-w-5xl relative z-10">
           <h1 className="font-heading text-4xl md:text-5xl font-extrabold text-center text-foreground">
             How It Works
@@ -71,11 +67,6 @@ const HowItWorks = () => {
             <Button variant="hero" size="xl" asChild>
               <Link to="/create-art">Start Creating Your Art <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
-            
-            {/* 3D Paw Orb - centered below CTA */}
-            <div className="mt-8 flex justify-center">
-              <HowItWorks3D />
-            </div>
           </div>
         </div>
       </section>

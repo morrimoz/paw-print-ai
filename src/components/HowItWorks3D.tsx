@@ -61,7 +61,7 @@ function PawOrb({ scrollScale }: { scrollScale: React.MutableRefObject<number> }
 }
 
 interface HowItWorks3DProps {
-  containerRef: React.RefObject<HTMLElement>;
+  containerRef?: React.RefObject<HTMLElement>;
 }
 
 export const HowItWorks3D = ({ containerRef }: HowItWorks3DProps) => {
@@ -69,20 +69,26 @@ export const HowItWorks3D = ({ containerRef }: HowItWorks3DProps) => {
   const [webglOk, setWebglOk] = useState(true);
   const scrollScale = useRef(0);
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"],
-  });
+  // Only use scroll tracking if containerRef is provided
+  const { scrollYProgress } = useScroll(
+    containerRef
+      ? {
+          target: containerRef,
+          offset: ["start end", "end start"],
+        }
+      : undefined
+  );
 
   // Map scroll progress (0-1) into a scaled influence value
   const influence = useTransform(scrollYProgress, [0, 0.5, 1], [0, 1, 0]);
 
   useEffect(() => {
+    if (!containerRef) return;
     const unsub = influence.on("change", (v) => {
       scrollScale.current = v;
     });
     return () => unsub();
-  }, [influence]);
+  }, [influence, containerRef]);
 
   // WebGL feature detection
   useEffect(() => {

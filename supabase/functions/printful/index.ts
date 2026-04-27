@@ -478,11 +478,37 @@ serve(async (req) => {
 
           resolvedTechnique = resolvedTechnique || matchingGroup.technique || null;
 
-          const matchingStyle = Array.isArray(matchingGroup.mockup_styles)
-            ? matchingGroup.mockup_styles.find((style: { id: number; restricted_to_variants?: number[] }) => {
+          // Prefer Flat / Default front views; avoid "Product details" close-ups
+          // which often crop to a side pocket / strap and don't show the print.
+          const scoreStyle = (s: { view_name?: string; category_name?: string }) => {
+            const view = (s.view_name || "").toLowerCase();
+            const category = (s.category_name || "").toLowerCase();
+            const p = normalizedPlacement.toLowerCase();
+            let score = 0;
+            if (category.includes("product details") || view.includes("product details")) score -= 100;
+            if (category.includes("detail")) score -= 40;
+            if (category.includes("flat")) score += 50;
+            if (category.includes("default")) score += 40;
+            if (view && p && (view === p || view.startsWith(p))) score += 30;
+            if (category.includes("lifestyle")) score += 10;
+            return score;
+          };
+
+          const eligibleStyles = Array.isArray(matchingGroup.mockup_styles)
+            ? matchingGroup.mockup_styles.filter((style: { id: number; restricted_to_variants?: number[] }) => {
                 const restricted = style.restricted_to_variants;
                 return !restricted || restricted.length === 0 || restricted.includes(Number(variantId));
-              }) || matchingGroup.mockup_styles[0]
+              })
+            : [];
+
+          const styleCandidates = eligibleStyles.length > 0
+            ? eligibleStyles
+            : (matchingGroup.mockup_styles || []);
+
+          const matchingStyle = styleCandidates.length > 0
+            ? styleCandidates
+                .map((s) => ({ s, score: scoreStyle(s) }))
+                .sort((a, b) => b.score - a.score)[0].s
             : null;
 
           if (!resolvedMockupStyleId && matchingStyle?.id) {

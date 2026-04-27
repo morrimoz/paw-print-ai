@@ -302,6 +302,41 @@ export async function fetchPlacementsForVariant(productId: number, variantId: nu
   return [...new Set(placements)];
 }
 
+/**
+ * Score a mockup style for how well it represents the artwork on the product.
+ * Higher is better. We prefer clean "Flat" / "Default" front views that show
+ * the print clearly, and de-prioritise "Product details" / lifestyle close-ups
+ * (which often crop to a side pocket, strap, etc. and don't show the art).
+ */
+function scoreMockupStyle(
+  style: { view_name?: string; category_name?: string },
+  placement: string,
+): number {
+  const view = (style.view_name || "").toLowerCase();
+  const category = (style.category_name || "").toLowerCase();
+  const placementLower = placement.toLowerCase();
+
+  let score = 0;
+
+  // Strongly avoid product-detail close-ups — they rarely show the artwork.
+  if (category.includes("product details") || view.includes("product details")) score -= 100;
+  if (category.includes("detail")) score -= 40;
+
+  // Prefer flat / default categories (clean studio shots of the print).
+  if (category.includes("flat")) score += 50;
+  if (category.includes("default")) score += 40;
+
+  // Prefer the view that matches the requested placement (front/back/etc).
+  if (view && placementLower && (view === placementLower || view.startsWith(placementLower))) {
+    score += 30;
+  }
+
+  // Lifestyle shots are OK but slightly less ideal than flat product shots.
+  if (category.includes("lifestyle")) score += 10;
+
+  return score;
+}
+
 function resolveMockupConfig(
   styles: MockupStylesResponse,
   placement: string,
@@ -316,11 +351,17 @@ function resolveMockupConfig(
 
   if (!group) return null;
 
-  const style =
-    (group.mockup_styles || []).find((s) => {
-      const restricted = s.restricted_to_variants;
-      return !restricted || restricted.length === 0 || restricted.includes(variantId);
-    }) || group.mockup_styles?.[0];
+  const eligible = (group.mockup_styles || []).filter((s) => {
+    const restricted = s.restricted_to_variants;
+    return !restricted || restricted.length === 0 || restricted.includes(variantId);
+  });
+
+  const candidates = eligible.length > 0 ? eligible : group.mockup_styles || [];
+
+  // Pick the highest-scoring style, falling back to the first one.
+  const style = candidates
+    .map((s) => ({ s, score: scoreMockupStyle(s, normalizedPlacement) }))
+    .sort((a, b) => b.score - a.score)[0]?.s;
 
   if (!style?.id || !group.technique) return null;
 

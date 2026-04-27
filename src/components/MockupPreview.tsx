@@ -6,8 +6,10 @@ interface MockupPreviewProps {
   productTitle: string;
   /** The image to actively display in the main frame (product photo OR mockup). */
   displayedImage?: string | null;
-  /** Mockup URL once Printful has generated it. Used to detect if displayedImage is the mockup. */
+  /** Primary (best) mockup URL. Used for backwards compat / disclaimer detection. */
   mockupUrl?: string | null;
+  /** All generated mockup URLs (multiple angles). The disclaimer shows if displayed image is any of these. */
+  mockupUrls?: string[];
   loading?: boolean;
   /** True only after we tried to generate a mockup and got nothing back. */
   unavailable?: boolean;
@@ -28,6 +30,7 @@ export function MockupPreview({
   productTitle,
   displayedImage,
   mockupUrl,
+  mockupUrls,
   loading,
   unavailable,
   onPreviewMockup,
@@ -58,7 +61,8 @@ export function MockupPreview({
     );
   }
 
-  const isShowingMockup = !!mockupUrl && displayedImage === mockupUrl;
+  const allMockups = mockupUrls && mockupUrls.length > 0 ? mockupUrls : mockupUrl ? [mockupUrl] : [];
+  const isShowingMockup = !!displayedImage && allMockups.includes(displayedImage);
 
   return (
     <div className="space-y-3">

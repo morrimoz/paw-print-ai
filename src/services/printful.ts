@@ -455,6 +455,32 @@ export function getDefaultProductOptionSelections(
   return selections;
 }
 
+/**
+ * Resolve every eligible mockup style for the given placement/variant, ordered
+ * best → worst. Used when we want to render multiple mockup angles.
+ */
+function resolveAllMockupConfigs(
+  styles: MockupStylesResponse,
+  placement: string,
+  variantId: number,
+): { mockupStyleId: number; technique: string }[] {
+  const normalizedPlacement = normalizePlacement(placement);
+  const group = styles.data.find((g) => g.placement && normalizePlacement(g.placement) === normalizedPlacement);
+  if (!group?.technique) return [];
+
+  const eligible = (group.mockup_styles || []).filter((s) => {
+    const restricted = s.restricted_to_variants;
+    return !restricted || restricted.length === 0 || restricted.includes(variantId);
+  });
+  const candidates = eligible.length > 0 ? eligible : group.mockup_styles || [];
+
+  return candidates
+    .map((s) => ({ s, score: scoreMockupStyle(s, normalizedPlacement) }))
+    .sort((a, b) => b.score - a.score)
+    .filter((c) => c.s?.id)
+    .map((c) => ({ mockupStyleId: c.s.id as number, technique: group.technique as string }));
+}
+
 /** Create a mockup task and poll until completed. */
 export async function generateMockup(opts: {
   productId: number;
@@ -463,11 +489,17 @@ export async function generateMockup(opts: {
   imageUrl: string;
   format?: "jpg" | "png";
   productOptions?: Record<string, unknown>;
+  /** Optional: render with a specific mockup style (used to fetch additional angles). */
+  mockupStyleId?: number;
+  technique?: string;
 }): Promise<{ mockupUrl: string | null; placement: string }> {
   const { productId, variantId, placement, imageUrl, format = "jpg", productOptions } = opts;
 
   const styles = await fetchMockupStyles(productId);
-  const config = resolveMockupConfig(styles, placement, variantId);
+  const resolved = resolveMockupConfig(styles, placement, variantId);
+  const config = opts.mockupStyleId && opts.technique
+    ? { mockupStyleId: opts.mockupStyleId, technique: opts.technique }
+    : resolved;
 
   if (!config) {
     console.warn("No valid Printful mockup config found", { productId, variantId, placement });
@@ -573,4 +605,47 @@ export async function createOrder(
   return data.result;
 }
 
+/**
+ * Generate mockups for ALL eligible styles of the given placement, so the user
+ * can browse multiple angles of their art on the product. Runs sequentially to
+ * be gentle with Printful's rate limits, and reports each URL as it arrives via
+ * the optional `onMockup` callback.
+ */
+export async function generateAllMockups(opts: {
+  productId: number;
+  variantId: number;
+  placement: string;
+  imageUrl: string;
+  maxStyles?: number;
+  onMockup?: (url: string, index: number, total: number) => void;
+}): Promise<string[]> {
+  const { productId, variantId, placement, imageUrl, maxStyles = 6, onMockup } = opts;
+  const styles = await fetchMockupStyles(productId);
+  const configs = resolveAllMockupConfigs(styles, placement, variantId).slice(0, maxStyles);
+  if (configs.length === 0) return [];
+
+  const urls: string[] = [];
+  for (let i = 0; i < configs.length; i++) {
+    const cfg = configs[i];
+    try {
+      const { mockupUrl } = await generateMockup({
+        productId,
+        variantId,
+        placement,
+        imageUrl,
+        mockupStyleId: cfg.mockupStyleId,
+        technique: cfg.technique,
+      });
+      if (mockupUrl) {
+        urls.push(mockupUrl);
+        onMockup?.(mockupUrl, i, configs.length);
+      }
+    } catch (err) {
+      console.warn("Mockup style failed", cfg, err);
+    }
+  }
+  return urls;
+}
+
 export { PrintfulRateLimitError };
+

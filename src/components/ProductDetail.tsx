@@ -5,7 +5,7 @@ import { PriceDisplay } from "./PriceDisplay";
 import { ProductDescription } from "./ProductDescription";
 import { ProductImageGallery } from "./ProductImageGallery";
 import { getMarkedUpPrice } from "@/utils/pricing";
-import { fetchProductDetail, fetchPlacementsForVariant, generateMockup } from "@/services/printful";
+import { fetchProductDetail, fetchPlacementsForVariant, generateAllMockups } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,9 +24,10 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [placements, setPlacements] = useState<string[]>([]);
   const [selectedPlacement, setSelectedPlacement] = useState<string>("");
-  const [mockupUrl, setMockupUrl] = useState<string | null>(null);
+  const [mockupUrls, setMockupUrls] = useState<string[]>([]);
   const [mockupLoading, setMockupLoading] = useState(false);
   const [mockupAttempted, setMockupAttempted] = useState(false);
+  const primaryMockupUrl = mockupUrls[0] || null;
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -131,24 +132,30 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
 
   // Reset mockup state when inputs change.
   useEffect(() => {
-    setMockupUrl(null);
+    setMockupUrls([]);
     setMockupLoading(false);
     setMockupAttempted(false);
   }, [product.id, artworkUrl, selectedVariant?.id, selectedPlacement]);
 
   async function handlePreviewMockup() {
     if (!artworkUrl || !selectedVariant || !selectedPlacement) return;
-    setMockupUrl(null);
+    setMockupUrls([]);
     setMockupLoading(true);
     setMockupAttempted(false);
     try {
-      const { mockupUrl: url } = await generateMockup({
+      // Stream each mockup into state as it arrives so users see images
+      // populate progressively in the gallery thumbnail strip.
+      await generateAllMockups({
         productId: product.id,
         variantId: selectedVariant.id,
         placement: selectedPlacement,
         imageUrl: artworkUrl,
+        onMockup: (url) => {
+          setMockupUrls((prev) => (prev.includes(url) ? prev : [...prev, url]));
+          // Hide the spinner as soon as the first mockup lands.
+          setMockupLoading(false);
+        },
       });
-      setMockupUrl(url);
     } catch (err) {
       console.error("Mockup generation failed:", err);
     } finally {
@@ -198,16 +205,19 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
           <MockupPreview
             artworkUrl={artworkUrl}
             productTitle={product.title}
-            displayedImage={mockupUrl || displayedImage}
-            mockupUrl={mockupUrl}
+            displayedImage={manualImage || primaryMockupUrl || displayedImage}
+            mockupUrl={primaryMockupUrl}
+            mockupUrls={mockupUrls}
             loading={mockupLoading}
-            unavailable={mockupAttempted && !mockupUrl}
-            canPreview={!!artworkUrl && !!selectedVariant && !!selectedPlacement && !mockupUrl && !mockupLoading}
+            unavailable={mockupAttempted && mockupUrls.length === 0}
+            canPreview={
+              !!artworkUrl && !!selectedVariant && !!selectedPlacement && mockupUrls.length === 0 && !mockupLoading
+            }
             onPreviewMockup={handlePreviewMockup}
           />
           <ProductImageGallery
-            images={mockupUrl ? [mockupUrl, ...galleryImages] : galleryImages}
-            selected={mockupUrl || displayedImage}
+            images={[...mockupUrls, ...galleryImages]}
+            selected={manualImage || primaryMockupUrl || displayedImage}
             onSelect={(img) => setManualImage(img)}
           />
         </div>

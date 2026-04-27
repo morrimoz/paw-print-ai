@@ -455,6 +455,32 @@ export function getDefaultProductOptionSelections(
   return selections;
 }
 
+/**
+ * Resolve every eligible mockup style for the given placement/variant, ordered
+ * best → worst. Used when we want to render multiple mockup angles.
+ */
+function resolveAllMockupConfigs(
+  styles: MockupStylesResponse,
+  placement: string,
+  variantId: number,
+): { mockupStyleId: number; technique: string }[] {
+  const normalizedPlacement = normalizePlacement(placement);
+  const group = styles.data.find((g) => g.placement && normalizePlacement(g.placement) === normalizedPlacement);
+  if (!group?.technique) return [];
+
+  const eligible = (group.mockup_styles || []).filter((s) => {
+    const restricted = s.restricted_to_variants;
+    return !restricted || restricted.length === 0 || restricted.includes(variantId);
+  });
+  const candidates = eligible.length > 0 ? eligible : group.mockup_styles || [];
+
+  return candidates
+    .map((s) => ({ s, score: scoreMockupStyle(s, normalizedPlacement) }))
+    .sort((a, b) => b.score - a.score)
+    .filter((c) => c.s?.id)
+    .map((c) => ({ mockupStyleId: c.s.id as number, technique: group.technique as string }));
+}
+
 /** Create a mockup task and poll until completed. */
 export async function generateMockup(opts: {
   productId: number;
@@ -463,11 +489,17 @@ export async function generateMockup(opts: {
   imageUrl: string;
   format?: "jpg" | "png";
   productOptions?: Record<string, unknown>;
+  /** Optional: render with a specific mockup style (used to fetch additional angles). */
+  mockupStyleId?: number;
+  technique?: string;
 }): Promise<{ mockupUrl: string | null; placement: string }> {
   const { productId, variantId, placement, imageUrl, format = "jpg", productOptions } = opts;
 
   const styles = await fetchMockupStyles(productId);
-  const config = resolveMockupConfig(styles, placement, variantId);
+  const resolved = resolveMockupConfig(styles, placement, variantId);
+  const config = opts.mockupStyleId && opts.technique
+    ? { mockupStyleId: opts.mockupStyleId, technique: opts.technique }
+    : resolved;
 
   if (!config) {
     console.warn("No valid Printful mockup config found", { productId, variantId, placement });

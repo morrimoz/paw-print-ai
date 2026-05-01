@@ -606,45 +606,46 @@ export async function createOrder(
 }
 
 /**
- * Generate mockups for ALL eligible styles of the given placement, so the user
- * can browse multiple angles of their art on the product. Runs sequentially to
- * be gentle with Printful's rate limits, and reports each URL as it arrives via
- * the optional `onMockup` callback.
+ * Return the ordered list of mockup style IDs available for a placement/variant,
+ * best → worst. Used by the UI to know how many additional angles can still be
+ * generated and which style to render next.
  */
-export async function generateAllMockups(opts: {
+export async function listMockupStyleIds(
+  productId: number,
+  variantId: number,
+  placement: string,
+): Promise<number[]> {
+  const styles = await fetchMockupStyles(productId);
+  return resolveAllMockupConfigs(styles, placement, variantId).map((c) => c.mockupStyleId);
+}
+
+/**
+ * Generate a single additional mockup, picking the next best style that the
+ * caller hasn't already rendered. Returns the URL plus the style ID used so
+ * the caller can track it.
+ */
+export async function generateNextMockup(opts: {
   productId: number;
   variantId: number;
   placement: string;
   imageUrl: string;
-  maxStyles?: number;
-  onMockup?: (url: string, index: number, total: number) => void;
-}): Promise<string[]> {
-  const { productId, variantId, placement, imageUrl, maxStyles = 6, onMockup } = opts;
+  usedStyleIds: number[];
+}): Promise<{ mockupUrl: string | null; mockupStyleId: number | null }> {
+  const { productId, variantId, placement, imageUrl, usedStyleIds } = opts;
   const styles = await fetchMockupStyles(productId);
-  const configs = resolveAllMockupConfigs(styles, placement, variantId).slice(0, maxStyles);
-  if (configs.length === 0) return [];
+  const configs = resolveAllMockupConfigs(styles, placement, variantId);
+  const next = configs.find((c) => !usedStyleIds.includes(c.mockupStyleId));
+  if (!next) return { mockupUrl: null, mockupStyleId: null };
 
-  const urls: string[] = [];
-  for (let i = 0; i < configs.length; i++) {
-    const cfg = configs[i];
-    try {
-      const { mockupUrl } = await generateMockup({
-        productId,
-        variantId,
-        placement,
-        imageUrl,
-        mockupStyleId: cfg.mockupStyleId,
-        technique: cfg.technique,
-      });
-      if (mockupUrl) {
-        urls.push(mockupUrl);
-        onMockup?.(mockupUrl, i, configs.length);
-      }
-    } catch (err) {
-      console.warn("Mockup style failed", cfg, err);
-    }
-  }
-  return urls;
+  const { mockupUrl } = await generateMockup({
+    productId,
+    variantId,
+    placement,
+    imageUrl,
+    mockupStyleId: next.mockupStyleId,
+    technique: next.technique,
+  });
+  return { mockupUrl, mockupStyleId: next.mockupStyleId };
 }
 
 export { PrintfulRateLimitError };

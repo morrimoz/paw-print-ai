@@ -25,13 +25,17 @@ const About = () => {
 
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {values.map((v) => (
-              <div key={v.title} className="bg-card rounded-xl p-6 shadow-card">
+              <BorderGlow
+                key={v.title}
+                borderRadius={12}
+                innerClassName="bg-card rounded-xl p-6 shadow-card h-full"
+              >
                 <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center mb-3">
                   <v.icon className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="font-heading text-lg font-semibold text-foreground">{v.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{v.description}</p>
-              </div>
+              </BorderGlow>
             ))}
           </div>
 

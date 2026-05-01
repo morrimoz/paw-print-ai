@@ -1,4 +1,5 @@
 import { PublicLayout } from "@/components/PublicLayout";
+import { BorderGlow } from "@/components/BorderGlow";
 import { Heart, Lightbulb, Shield, Smile } from "lucide-react";
 
 const values = [

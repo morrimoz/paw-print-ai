@@ -205,6 +205,18 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       }
     } catch (err) {
       console.error("Failed to generate additional mockup:", err);
+      if (err instanceof PrintfulRateLimitError) {
+        toast({
+          title: "Hang tight — Printful is rate-limiting us",
+          description: `Printful only allows about one new mockup per minute. Please try again in ~${err.retryAfter}s.`,
+        });
+      } else {
+        toast({
+          title: "Couldn't generate another angle",
+          description: "Something went wrong fetching the next mockup. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setMoreMockupLoading(false);
     }

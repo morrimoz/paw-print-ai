@@ -1,5 +1,6 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
+import { BorderGlow } from "@/components/BorderGlow";
 import { Link } from "react-router-dom";
 import { Check, ArrowRight, Info } from "lucide-react";
 

@@ -149,16 +149,18 @@ const Index = () => {
           </p>
           <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {steps.map((step) => (
-              <div
+              <BorderGlow
                 key={step.title}
-                className="reveal glass-card card-lift ring-gradient-hover rounded-2xl p-6 text-center group"
+                className="reveal card-lift"
+                borderRadius={16}
+                innerClassName="glass-card rounded-2xl p-6 text-center group h-full"
               >
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
                   <step.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-heading text-lg font-semibold text-foreground">{step.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-              </div>
+              </BorderGlow>
             ))}
           </div>
         </div>

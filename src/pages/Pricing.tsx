@@ -49,14 +49,15 @@ const Pricing = () => {
 
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
-              <div
+              <BorderGlow
                 key={pkg.name}
-                className={`relative bg-card rounded-xl p-6 shadow-card flex flex-col ${
+                borderRadius={12}
+                innerClassName={`relative bg-card rounded-xl p-6 shadow-card flex flex-col h-full ${
                   pkg.popular ? "ring-2 ring-primary" : ""
                 }`}
               >
                 {pkg.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full z-10">
                     Most Popular
                   </span>
                 )}
@@ -82,7 +83,7 @@ const Pricing = () => {
                 >
                   <Link to="/signup">Get Started <ArrowRight className="ml-1 h-4 w-4" /></Link>
                 </Button>
-              </div>
+              </BorderGlow>
             ))}
           </div>
 

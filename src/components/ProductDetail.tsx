@@ -11,10 +11,12 @@ import {
   generateMockup,
   generateNextMockup,
   listMockupStyleIds,
+  PrintfulRateLimitError,
 } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 interface ProductDetailProps {
   product: PrintfulProduct;
@@ -176,6 +178,18 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       }
     } catch (err) {
       console.error("Mockup generation failed:", err);
+      if (err instanceof PrintfulRateLimitError) {
+        toast({
+          title: "Hang tight — Printful is rate-limiting us",
+          description: `Printful only allows about one new mockup per minute. Please try again in ~${err.retryAfter}s.`,
+        });
+      } else {
+        toast({
+          title: "Couldn't generate mockup",
+          description: "Something went wrong generating the preview. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setMockupLoading(false);
       setMockupAttempted(true);
@@ -203,6 +217,18 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       }
     } catch (err) {
       console.error("Failed to generate additional mockup:", err);
+      if (err instanceof PrintfulRateLimitError) {
+        toast({
+          title: "Hang tight — Printful is rate-limiting us",
+          description: `Printful only allows about one new mockup per minute. Please try again in ~${err.retryAfter}s.`,
+        });
+      } else {
+        toast({
+          title: "Couldn't generate another angle",
+          description: "Something went wrong fetching the next mockup. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setMoreMockupLoading(false);
     }

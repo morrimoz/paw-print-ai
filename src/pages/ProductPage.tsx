@@ -9,6 +9,7 @@ import { MockupPreview } from "@/components/MockupPreview";
 import { ProductDescription } from "@/components/ProductDescription";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { PeopleAlsoBought } from "@/components/PeopleAlsoBought";
+import { BorderGlow } from "@/components/BorderGlow";
 import { getDisplayPrice, getMarkedUpPrice } from "@/utils/pricing";
 import { ArrowLeft, ShoppingCart, Upload, Sparkles, ImagePlus, Loader2, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";

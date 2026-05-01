@@ -1,5 +1,6 @@
 import { PublicLayout } from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
+import { BorderGlow } from "@/components/BorderGlow";
 import { Link } from "react-router-dom";
 import { Upload, Palette, ShoppingBag, Sparkles, Star, ArrowRight, Gift } from "lucide-react";
 
@@ -83,12 +84,16 @@ const Index = () => {
         <div className="container relative z-10 pt-4 pb-16 md:py-20 md:pt-4 flex flex-col items-center text-center gap-8">
           {/* Promo strip - above the hero image */}
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 backdrop-blur">
+            <BorderGlow
+              borderRadius={9999}
+              glowRadius={28}
+              innerClassName="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 backdrop-blur"
+            >
               <Gift className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">
                 Bonus: order any merch and we'll add <span className="text-primary font-bold">10 free treats</span> to your account.
               </span>
-            </div>
+            </BorderGlow>
           </div>
 
           <div
@@ -148,16 +153,18 @@ const Index = () => {
           </p>
           <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {steps.map((step) => (
-              <div
+              <BorderGlow
                 key={step.title}
-                className="reveal glass-card card-lift ring-gradient-hover rounded-2xl p-6 text-center group"
+                className="reveal card-lift"
+                borderRadius={16}
+                innerClassName="glass-card rounded-2xl p-6 text-center group h-full"
               >
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
                   <step.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-heading text-lg font-semibold text-foreground">{step.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-              </div>
+              </BorderGlow>
             ))}
           </div>
         </div>
@@ -171,9 +178,11 @@ const Index = () => {
           </h2>
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div
+              <BorderGlow
                 key={t.author}
-                className="reveal glass-card card-lift ring-gradient-hover rounded-2xl p-6 pb-16 relative overflow-hidden"
+                className="reveal card-lift"
+                borderRadius={16}
+                innerClassName="glass-card rounded-2xl p-6 pb-16 relative overflow-hidden h-full"
               >
                 <div className="flex gap-1 mb-3">
                   {[...Array(5)].map((_, i) => (
@@ -190,7 +199,7 @@ const Index = () => {
                 >
                   {t.initials}
                 </div>
-              </div>
+              </BorderGlow>
             ))}
           </div>
         </div>

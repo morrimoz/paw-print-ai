@@ -321,7 +321,10 @@ const ProductPage = () => {
             </div>
 
             {/* +10 free treats promo */}
-            <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <BorderGlow
+              borderRadius={12}
+              innerClassName="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3"
+            >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15">
                 <Gift className="h-5 w-5 text-primary" />
               </div>
@@ -331,7 +334,7 @@ const ProductPage = () => {
                   Auto-credited after checkout - use them to generate more pet art.
                 </p>
               </div>
-            </div>
+            </BorderGlow>
 
             {placements.length > 1 && artworkUrl && (
               <div>

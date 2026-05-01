@@ -5,7 +5,13 @@ import { PriceDisplay } from "./PriceDisplay";
 import { ProductDescription } from "./ProductDescription";
 import { ProductImageGallery } from "./ProductImageGallery";
 import { getMarkedUpPrice } from "@/utils/pricing";
-import { fetchProductDetail, fetchPlacementsForVariant, generateAllMockups } from "@/services/printful";
+import {
+  fetchProductDetail,
+  fetchPlacementsForVariant,
+  generateMockup,
+  generateNextMockup,
+  listMockupStyleIds,
+} from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +31,10 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
   const [placements, setPlacements] = useState<string[]>([]);
   const [selectedPlacement, setSelectedPlacement] = useState<string>("");
   const [mockupUrls, setMockupUrls] = useState<string[]>([]);
+  const [usedStyleIds, setUsedStyleIds] = useState<number[]>([]);
+  const [totalStyles, setTotalStyles] = useState(0);
   const [mockupLoading, setMockupLoading] = useState(false);
+  const [moreMockupLoading, setMoreMockupLoading] = useState(false);
   const [mockupAttempted, setMockupAttempted] = useState(false);
   const primaryMockupUrl = mockupUrls[0] || null;
   const [adding, setAdding] = useState(false);
@@ -133,29 +142,38 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
   // Reset mockup state when inputs change.
   useEffect(() => {
     setMockupUrls([]);
+    setUsedStyleIds([]);
+    setTotalStyles(0);
     setMockupLoading(false);
+    setMoreMockupLoading(false);
     setMockupAttempted(false);
   }, [product.id, artworkUrl, selectedVariant?.id, selectedPlacement]);
 
   async function handlePreviewMockup() {
     if (!artworkUrl || !selectedVariant || !selectedPlacement) return;
     setMockupUrls([]);
+    setUsedStyleIds([]);
     setMockupLoading(true);
     setMockupAttempted(false);
     try {
-      // Stream each mockup into state as it arrives so users see images
-      // populate progressively in the gallery thumbnail strip.
-      await generateAllMockups({
+      // Discover total available angles up-front so the UI knows whether
+      // to show the "+ generate another angle" button.
+      const allIds = await listMockupStyleIds(product.id, selectedVariant.id, selectedPlacement);
+      setTotalStyles(allIds.length);
+
+      const { mockupUrl } = await generateMockup({
         productId: product.id,
         variantId: selectedVariant.id,
         placement: selectedPlacement,
         imageUrl: artworkUrl,
-        onMockup: (url) => {
-          setMockupUrls((prev) => (prev.includes(url) ? prev : [...prev, url]));
-          // Hide the spinner as soon as the first mockup lands.
-          setMockupLoading(false);
-        },
       });
+      if (mockupUrl) {
+        setMockupUrls([mockupUrl]);
+        // We don't know exactly which style was picked server-side, but the
+        // best-scoring style is always first — track it so the next request
+        // moves on to the second-best.
+        if (allIds[0]) setUsedStyleIds([allIds[0]]);
+      }
     } catch (err) {
       console.error("Mockup generation failed:", err);
     } finally {
@@ -163,6 +181,34 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
       setMockupAttempted(true);
     }
   }
+
+  async function handleGenerateAnotherMockup() {
+    if (!artworkUrl || !selectedVariant || !selectedPlacement) return;
+    if (moreMockupLoading) return;
+    setMoreMockupLoading(true);
+    try {
+      const { mockupUrl, mockupStyleId } = await generateNextMockup({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        placement: selectedPlacement,
+        imageUrl: artworkUrl,
+        usedStyleIds,
+      });
+      if (mockupUrl) {
+        setMockupUrls((prev) => (prev.includes(mockupUrl) ? prev : [...prev, mockupUrl]));
+        setManualImage(mockupUrl);
+      }
+      if (mockupStyleId) {
+        setUsedStyleIds((prev) => (prev.includes(mockupStyleId) ? prev : [...prev, mockupStyleId]));
+      }
+    } catch (err) {
+      console.error("Failed to generate additional mockup:", err);
+    } finally {
+      setMoreMockupLoading(false);
+    }
+  }
+
+  const canGenerateMore = mockupUrls.length > 0 && mockupUrls.length < totalStyles;
 
   const basePriceForDisplay = selectedVariant ? selectedVariant.price : "15.00";
 

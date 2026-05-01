@@ -11,10 +11,12 @@ import {
   generateMockup,
   generateNextMockup,
   listMockupStyleIds,
+  PrintfulRateLimitError,
 } from "@/services/printful";
 import type { PrintfulProduct, PrintfulVariant } from "@/services/printful";
 import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 interface ProductDetailProps {
   product: PrintfulProduct;

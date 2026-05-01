@@ -265,6 +265,13 @@ export function ProductDetail({ product, artworkUrl, onBack, onAddToOrder }: Pro
             images={[...mockupUrls, ...galleryImages]}
             selected={manualImage || primaryMockupUrl || displayedImage}
             onSelect={(img) => setManualImage(img)}
+            onAddMore={canGenerateMore ? handleGenerateAnotherMockup : undefined}
+            addMoreLoading={moreMockupLoading}
+            addMoreHint={
+              mockupUrls.length === 1
+                ? "Generate another angle. Heads up — Printful limits us to roughly one mockup per minute, so each new angle takes a moment to render."
+                : "Generate another angle (one at a time — Printful is rate-limited)."
+            }
           />
         </div>
 

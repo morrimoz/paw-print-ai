@@ -13,6 +13,7 @@ import styleHyperrealistic from "@/assets/style-hyperrealistic.png";
 import styleHumorous from "@/assets/style-humorous.webp";
 import styleCartoon from "@/assets/style-cartoon.webp";
 import { GeneratingOverlay } from "@/components/GeneratingOverlay";
+import { BorderGlow } from "@/components/BorderGlow";
 
 const artStyles = [
   { id: "dramatic-bw", name: "Dramatic B&W", image: styleBlackWhite, Icon: Contrast },

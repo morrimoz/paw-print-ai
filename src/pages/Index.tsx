@@ -174,9 +174,11 @@ const Index = () => {
           </h2>
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div
+              <BorderGlow
                 key={t.author}
-                className="reveal glass-card card-lift ring-gradient-hover rounded-2xl p-6 pb-16 relative overflow-hidden"
+                className="reveal card-lift"
+                borderRadius={16}
+                innerClassName="glass-card rounded-2xl p-6 pb-16 relative overflow-hidden h-full"
               >
                 <div className="flex gap-1 mb-3">
                   {[...Array(5)].map((_, i) => (
@@ -193,7 +195,7 @@ const Index = () => {
                 >
                   {t.initials}
                 </div>
-              </div>
+              </BorderGlow>
             ))}
           </div>
         </div>

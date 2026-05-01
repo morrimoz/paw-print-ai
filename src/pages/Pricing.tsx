@@ -34,14 +34,18 @@ const Pricing = () => {
           </p>
 
           {/* Merch pricing callout */}
-          <div className="mt-8 max-w-2xl mx-auto glass-card rounded-xl p-4 flex items-start gap-3">
+          <BorderGlow
+            className="mt-8 max-w-2xl mx-auto block"
+            borderRadius={12}
+            innerClassName="glass-card rounded-xl p-4 flex items-start gap-3"
+          >
             <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <p className="text-sm text-muted-foreground text-left">
               <span className="font-semibold text-foreground">Merchandise pricing is separate.</span>{" "}
               Treats only cover AI art generation. Physical products (mugs, canvases, tees, etc.)
               are priced per-item based on the product you choose at checkout.
             </p>
-          </div>
+          </BorderGlow>
 
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
             {packages.map((pkg) => (

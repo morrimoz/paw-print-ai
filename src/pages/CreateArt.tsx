@@ -247,66 +247,72 @@ const CreateArt = () => {
               const isDimmed = hasSelection && !isSelected;
               const Icon = style.Icon;
               return (
-                <button
+                <BorderGlow
                   key={style.id}
-                  onClick={() => setSelectedStyle(isSelected ? null : style.id)}
-                  style={{
-                    boxShadow: isSelected
-                      ? "0 0 0 3px hsl(var(--primary) / 0.35), 0 0 28px 4px hsl(var(--primary) / 0.45)"
-                      : undefined,
-                  }}
-                  className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all duration-500 ease-out will-change-transform ${
-                    isSelected
-                      ? "border-primary scale-[1.04] z-10"
-                      : isDimmed
-                        ? "border-border scale-[0.92] opacity-50 md:hover:opacity-80"
-                        : "border-border md:hover:border-primary/50 card-lift"
-                  }`}
+                  borderRadius={12}
+                  glowRadius={28}
+                  innerClassName="rounded-xl"
                 >
-                  {/* Default state - the style reference image */}
-                  <img
-                    src={style.image}
-                    alt={style.name}
-                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
+                  <button
+                    onClick={() => setSelectedStyle(isSelected ? null : style.id)}
+                    style={{
+                      boxShadow: isSelected
+                        ? "0 0 0 3px hsl(var(--primary) / 0.35), 0 0 28px 4px hsl(var(--primary) / 0.45)"
+                        : undefined,
+                    }}
+                    className={`group relative aspect-[4/3] w-full rounded-xl overflow-hidden border-2 transition-all duration-500 ease-out will-change-transform ${
                       isSelected
-                        ? "opacity-100 scale-100"
-                        : "opacity-100 scale-100 md:group-hover:opacity-0 md:group-hover:scale-105"
-                    }`}
-                    loading="lazy"
-                  />
-
-                  {/* Hover state - grainy gradient mesh + icon (hidden when selected, desktop only) */}
-                  <div
-                    className={`absolute inset-0 bg-mesh-card transition-opacity duration-500 ${
-                      isSelected ? "opacity-0" : "opacity-0 md:group-hover:opacity-100"
+                        ? "border-primary scale-[1.04] z-10"
+                        : isDimmed
+                          ? "border-border scale-[0.92] opacity-50 md:hover:opacity-80"
+                          : "border-border md:hover:border-primary/50 card-lift"
                     }`}
                   >
-                    <div className="absolute inset-0 grain-overlay" />
-                    <div className="relative z-10 h-full flex items-center justify-center">
-                      <Icon className="h-10 w-10 text-primary" strokeWidth={1.5} />
-                    </div>
-                  </div>
-
-                  {/* Bottom gradient for label readability over image */}
-                  <div
-                    className={`absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-500 ${
-                      isSelected ? "opacity-100" : "opacity-100 md:group-hover:opacity-0"
-                    }`}
-                  />
-
-                  {/* Label */}
-                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-center p-3">
-                    <span
-                      className={`text-sm font-semibold transition-colors duration-300 ${
+                    {/* Default state - the style reference image */}
+                    <img
+                      src={style.image}
+                      alt={style.name}
+                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
                         isSelected
-                          ? "text-white drop-shadow-md"
-                          : "text-white drop-shadow-md md:group-hover:text-foreground md:group-hover:drop-shadow-none"
+                          ? "opacity-100 scale-100"
+                          : "opacity-100 scale-100 md:group-hover:opacity-0 md:group-hover:scale-105"
+                      }`}
+                      loading="lazy"
+                    />
+
+                    {/* Hover state - grainy gradient mesh + icon (hidden when selected, desktop only) */}
+                    <div
+                      className={`absolute inset-0 bg-mesh-card transition-opacity duration-500 ${
+                        isSelected ? "opacity-0" : "opacity-0 md:group-hover:opacity-100"
                       }`}
                     >
-                      {style.name}
-                    </span>
-                  </div>
-                </button>
+                      <div className="absolute inset-0 grain-overlay" />
+                      <div className="relative z-10 h-full flex items-center justify-center">
+                        <Icon className="h-10 w-10 text-primary" strokeWidth={1.5} />
+                      </div>
+                    </div>
+
+                    {/* Bottom gradient for label readability over image */}
+                    <div
+                      className={`absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-500 ${
+                        isSelected ? "opacity-100" : "opacity-100 md:group-hover:opacity-0"
+                      }`}
+                    />
+
+                    {/* Label */}
+                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-center p-3">
+                      <span
+                        className={`text-sm font-semibold transition-colors duration-300 ${
+                          isSelected
+                            ? "text-white drop-shadow-md"
+                            : "text-white drop-shadow-md md:group-hover:text-foreground md:group-hover:drop-shadow-none"
+                        }`}
+                      >
+                        {style.name}
+                      </span>
+                    </div>
+                  </button>
+                </BorderGlow>
               );
             })}
           </div>

@@ -113,7 +113,8 @@ export function BorderGlow({
   glowIntensity = 1.0,
   coneSpread = 25,
   animated = false,
-  colors = ["#c084fc", "#f472b6", "#38bdf8"],
+  // Brand palette: sky blue (primary), warm yellow (dark primary/accent), soft sky tint
+  colors = ["hsl(199 89% 64%)", "hsl(45 96% 69%)", "hsl(199 95% 80%)"],
   fillOpacity = 0.4,
   as: Tag = "div",
 }: BorderGlowProps) {
